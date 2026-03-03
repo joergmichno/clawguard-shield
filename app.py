@@ -82,6 +82,28 @@ def internal_error(e):
     return jsonify({"error": "internal_error", "message": "Internal server error."}), 500
 
 
+# ─── GET /api/v1/ ─────────────────────────────────────────────────────────────
+
+@app.route("/api/v1/", methods=["GET"])
+@app.route("/api/v1", methods=["GET"])
+def api_index():
+    """API overview — shown when someone visits the base URL."""
+    return jsonify({
+        "service": "ClawGuard Shield",
+        "version": "1.0.0",
+        "description": "AI Agent Security Scanning API",
+        "endpoints": {
+            "POST /api/v1/scan": "Scan text for security threats (requires API key)",
+            "GET  /api/v1/health": "Service health check",
+            "GET  /api/v1/patterns": "List all detection patterns (requires API key)",
+            "GET  /api/v1/usage": "Your usage statistics (requires API key)",
+            "POST /api/v1/register": "Get a free API key",
+        },
+        "docs": "https://prompttools.co/shield",
+        "github": "https://github.com/joergmichno/clawguard-shield",
+    }), 200
+
+
 # ─── POST /api/v1/scan ───────────────────────────────────────────────────────
 
 @app.route("/api/v1/scan", methods=["POST"])
