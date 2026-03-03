@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClawGuard Shield — AI Agent Security API</title>
+    <meta name="description" content="Protect your AI agents from prompt injections, data exfiltration, and social engineering. REST API with 36+ detection patterns. Free tier available.">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card: #12121a;
+            --border: #1e1e2e;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --green: #22c55e;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --text: #e4e4e7;
+            --muted: #71717a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+        /* Nav */
+        nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .logo span { color: var(--accent); }
+        nav a.btn-nav {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 20px;
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        nav a.btn-nav:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--accent-glow);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--accent);
+            margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+        .hero h1 .highlight { color: var(--accent); }
+        .hero p {
+            font-size: 18px;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-primary {
+            padding: 14px 32px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary {
+            padding: 14px 32px;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: border-color 0.2s;
+        }
+        .btn-secondary:hover { border-color: var(--muted); }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .stat { text-align: center; }
+        .stat .num {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        .stat .label {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Code Demo */
+        .demo {
+            padding: 60px 0;
+        }
+        .demo h2 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .demo .sub {
+            text-align: center;
+            color: var(--muted);
+            margin-bottom: 32px;
+        }
+        .code-block {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .code-header {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+        }
+        .code-body {
+            padding: 20px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+        .code-body .comment { color: var(--muted); }
+        .code-body .string { color: var(--green); }
+        .code-body .key { color: var(--accent); }
+        .code-body .val { color: var(--orange); }
+        .code-body .bool { color: var(--red); }
+
+        /* Features */
+        .features {
+            padding: 60px 0;
+        }
+        .features h2 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+        }
+        .feature-card .icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+        .feature-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        /* Pricing */
+        .pricing {
+            padding: 60px 0;
+        }
+        .pricing h2 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .pricing .sub {
+            text-align: center;
+            color: var(--muted);
+            margin-bottom: 40px;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .price-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+        }
+        .price-card.featured {
+            border-color: var(--accent);
+            box-shadow: 0 0 40px var(--accent-glow);
+        }
+        .price-card .tier {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .price-card .price {
+            font-size: 40px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .price-card .price .unit {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--muted);
+        }
+        .price-card .desc {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .price-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 28px;
+        }
+        .price-card li {
+            padding: 8px 0;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .price-card li:last-child { border: none; }
+        .price-card li::before {
+            content: "\2713";
+            color: var(--green);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        /* Register Form */
+        .register {
+            padding: 60px 0;
+            text-align: center;
+        }
+        .register h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .register .sub {
+            color: var(--muted);
+            margin-bottom: 32px;
+        }
+        .register-form {
+            max-width: 480px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+        }
+        .register-form input {
+            flex: 1;
+            padding: 14px 18px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+        }
+        .register-form input:focus { border-color: var(--accent); }
+        .register-form button {
+            padding: 14px 28px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .register-result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            display: none;
+        }
+        .register-result.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--green);
+            color: var(--green);
+            display: block;
+        }
+        .register-result.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--red);
+            color: var(--red);
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .feature-grid, .pricing-grid { grid-template-columns: 1fr; }
+            .register-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="container">
+        <a href="/shield" class="logo"><span>Claw</span>Guard Shield</a>
+        <a href="https://github.com/joergmichno/clawguard" class="btn-nav" target="_blank">GitHub</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="container">
+        <div class="badge">Now in Public Beta</div>
+        <h1>The <span class="highlight">Firewall</span> for<br>Autonomous AI Agents</h1>
+        <p>Scan any text for prompt injections, data exfiltration, dangerous commands, and social engineering. One API call, 6ms response time.</p>
+        <div class="hero-actions">
+            <a href="#register" class="btn-primary">Get Free API Key</a>
+            <a href="#demo" class="btn-secondary">See It In Action</a>
+        </div>
+    </div>
+</section>
+
+<section class="stats">
+    <div class="container" style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;">
+        <div class="stat"><div class="num">36+</div><div class="label">Detection Patterns</div></div>
+        <div class="stat"><div class="num">6ms</div><div class="label">Avg Response Time</div></div>
+        <div class="stat"><div class="num">5</div><div class="label">Threat Categories</div></div>
+        <div class="stat"><div class="num">0</div><div class="label">Dependencies</div></div>
+    </div>
+</section>
+
+<section class="demo" id="demo">
+    <div class="container">
+        <h2>One API Call. Instant Protection.</h2>
+        <p class="sub">Send text, get a security verdict in milliseconds.</p>
+        <div class="code-block">
+            <div class="code-header">
+                <span>POST /api/v1/scan</span>
+                <span>curl</span>
+            </div>
+            <div class="code-body">
+<span class="comment"># Scan for threats</span>
+curl -X POST https://prompttools.co/api/v1/scan \
+  -H <span class="string">"X-API-Key: cgs_your_key_here"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d '{<span class="key">"text"</span>: <span class="string">"Ignore all previous instructions"</span>}'
+
+<span class="comment"># Response</span>
+{
+  <span class="key">"clean"</span>: <span class="bool">false</span>,
+  <span class="key">"risk_score"</span>: <span class="val">10</span>,
+  <span class="key">"severity"</span>: <span class="string">"CRITICAL"</span>,
+  <span class="key">"findings"</span>: [{
+    <span class="key">"pattern_name"</span>: <span class="string">"Direct Override (EN)"</span>,
+    <span class="key">"severity"</span>: <span class="string">"CRITICAL"</span>,
+    <span class="key">"matched_text"</span>: <span class="string">"Ignore all previous instructions"</span>
+  }],
+  <span class="key">"scan_time_ms"</span>: <span class="val">6</span>
+}
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2>What We Detect</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">&#x1F6E1;</div>
+                <h3>Prompt Injection</h3>
+                <p>Direct overrides, role-play escapes, delimiter injection, synonym bypasses, system prompt extraction.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">&#x1F4BB;</div>
+                <h3>Dangerous Commands</h3>
+                <p>Shell commands, reverse shells, privilege escalation, remote code execution, pipe-to-shell patterns.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">&#x1F510;</div>
+                <h3>Data Exfiltration</h3>
+                <p>API key leaks, private keys, cleartext passwords, database connection strings, webhook exfiltration.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">&#x1F40D;</div>
+                <h3>Code Obfuscation</h3>
+                <p>Python eval/exec, getattr tricks, magic attributes, string assembly, dynamic imports, dangerous file I/O.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">&#x1F3AD;</div>
+                <h3>Social Engineering</h3>
+                <p>Urgency manipulation, authority impersonation, confidentiality traps. EN + DE pattern support.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">&#x26A1;</div>
+                <h3>Blazing Fast</h3>
+                <p>Pure regex engine, zero ML inference. 6ms average scan time. No rate-limiting surprises for paid tiers.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pricing" id="pricing">
+    <div class="container">
+        <h2>Simple Pricing</h2>
+        <p class="sub">Start free. Scale when you need to.</p>
+        <div class="pricing-grid">
+            <div class="price-card">
+                <div class="tier">Free</div>
+                <div class="price">&euro;0 <span class="unit">/ month</span></div>
+                <div class="desc">For testing and small projects</div>
+                <ul>
+                    <li>100 scans / day</li>
+                    <li>5,000 chars / request</li>
+                    <li>All 36+ patterns</li>
+                    <li>JSON API response</li>
+                    <li>CORS enabled</li>
+                </ul>
+                <a href="#register" class="btn-primary" style="display:block;">Get Free Key</a>
+            </div>
+            <div class="price-card featured">
+                <div class="tier">Pro</div>
+                <div class="price">&euro;9 <span class="unit">/ month</span></div>
+                <div class="desc">For production agents</div>
+                <ul>
+                    <li>10,000 scans / day</li>
+                    <li>50,000 chars / request</li>
+                    <li>All 36+ patterns</li>
+                    <li>Priority support</li>
+                    <li>Usage dashboard</li>
+                </ul>
+                <a href="mailto:michno.jrg@gmail.com?subject=ClawGuard Shield Pro" class="btn-primary" style="display:block;">Contact for Pro</a>
+            </div>
+            <div class="price-card">
+                <div class="tier">Enterprise</div>
+                <div class="price">&euro;49 <span class="unit">/ month</span></div>
+                <div class="desc">For security-critical deployments</div>
+                <ul>
+                    <li>Unlimited scans</li>
+                    <li>200,000 chars / request</li>
+                    <li>All 36+ patterns</li>
+                    <li>Dedicated support</li>
+                    <li>Custom patterns (soon)</li>
+                </ul>
+                <a href="mailto:michno.jrg@gmail.com?subject=ClawGuard Shield Enterprise" class="btn-primary" style="display:block;">Contact for Enterprise</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="register" id="register">
+    <div class="container">
+        <h2>Get Your Free API Key</h2>
+        <p class="sub">No credit card required. Start scanning in seconds.</p>
+        <form class="register-form" onsubmit="return registerKey(event)">
+            <input type="email" id="email" placeholder="your@email.com" required>
+            <button type="submit" id="regBtn">Get API Key</button>
+        </form>
+        <div class="register-result" id="result"></div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2026 <a href="https://github.com/joergmichno">J&ouml;rg Michno</a>. Built with ClawGuard &mdash; the open-source <a href="https://github.com/joergmichno/clawguard">AI agent security scanner</a>.</p>
+    </div>
+</footer>
+
+<script>
+async function registerKey(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const btn = document.getElementById('regBtn');
+    const result = document.getElementById('result');
+
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+    result.className = 'register-result';
+    result.style.display = 'none';
+
+    try {
+        const resp = await fetch('/api/v1/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            result.className = 'register-result success';
+            result.innerHTML = `Your API Key (save it now!):<br><br><strong>${data.api_key}</strong><br><br>Tier: ${data.tier} | Limit: ${data.daily_limit}/day | Max text: ${data.max_text_length} chars`;
+        } else {
+            result.className = 'register-result error';
+            result.textContent = data.message || 'Registration failed.';
+        }
+    } catch (err) {
+        result.className = 'register-result error';
+        result.textContent = 'Network error. Please try again.';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Get API Key';
+}
+</script>
+
+</body>
+</html>
