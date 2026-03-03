@@ -8,6 +8,9 @@ Endpoints:
     GET  /api/v1/patterns   — List detection patterns
     GET  /api/v1/usage      — Usage statistics
     POST /api/v1/register   — Register for a free API key
+    POST /api/v1/upgrade    — Upgrade to Pro/Enterprise (Stripe)
+    POST /api/v1/billing    — Manage subscription (Stripe Portal)
+    POST /api/v1/webhook/stripe — Stripe webhook receiver
 
 (c) 2026 Jörg Michno
 """
@@ -37,6 +40,15 @@ from database import (
     cleanup_old_rate_limits,
 )
 from models import ScanRequest, ScanResponse, RegisterRequest, HealthResponse
+from payments import (
+    create_checkout_session,
+    create_billing_portal_session,
+    verify_webhook,
+    handle_checkout_completed,
+    handle_subscription_updated,
+    handle_subscription_deleted,
+    get_stripe_customer_id,
+)
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
@@ -98,6 +110,8 @@ def api_index():
             "GET  /api/v1/patterns": "List all detection patterns (requires API key)",
             "GET  /api/v1/usage": "Your usage statistics (requires API key)",
             "POST /api/v1/register": "Get a free API key",
+            "POST /api/v1/upgrade": "Upgrade to Pro or Enterprise (requires API key)",
+            "POST /api/v1/billing": "Manage subscription via Stripe (requires API key)",
         },
         "docs": "https://prompttools.co/shield",
         "github": "https://github.com/joergmichno/clawguard-shield",
@@ -292,6 +306,99 @@ def api_register():
         "daily_limit": TIER_LIMITS["free"]["daily_limit"],
         "max_text_length": TIER_LIMITS["free"]["max_text_length"],
     }), 201
+
+
+# ─── POST /api/v1/upgrade ────────────────────────────────────────────────────
+
+@app.route("/api/v1/upgrade", methods=["POST"])
+@require_api_key
+def api_upgrade():
+    """Upgrade to Pro or Enterprise via Stripe Checkout."""
+    data = request.get_json(silent=True) or {}
+    tier = data.get("tier", "pro").lower()
+
+    if tier not in ("pro", "enterprise"):
+        return jsonify({
+            "error": "invalid_tier",
+            "message": "Tier must be 'pro' or 'enterprise'.",
+        }), 400
+
+    current_tier = request.key_data.get("tier", "free")
+    if current_tier == tier:
+        return jsonify({
+            "error": "already_on_tier",
+            "message": f"You are already on the {tier} tier.",
+        }), 400
+
+    email = request.key_data.get("email", "")
+    checkout_url = create_checkout_session(
+        email=email,
+        key_hash=request.key_hash,
+        tier=tier,
+    )
+
+    if not checkout_url:
+        return jsonify({
+            "error": "checkout_error",
+            "message": "Could not create checkout session. Payment may not be configured yet.",
+        }), 503
+
+    return jsonify({
+        "message": f"Redirect to Stripe to upgrade to {tier}.",
+        "checkout_url": checkout_url,
+    }), 200
+
+
+# ─── POST /api/v1/webhook/stripe ────────────────────────────────────────────
+
+@app.route("/api/v1/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Handle Stripe webhook events (no auth — validated by signature)."""
+    payload = request.get_data()
+    signature = request.headers.get("Stripe-Signature", "")
+
+    event = verify_webhook(payload, signature)
+    if not event:
+        return jsonify({"error": "invalid_signature"}), 400
+
+    event_type = event.get("type", "")
+
+    if event_type == "checkout.session.completed":
+        handle_checkout_completed(event)
+    elif event_type == "customer.subscription.updated":
+        handle_subscription_updated(event)
+    elif event_type == "customer.subscription.deleted":
+        handle_subscription_deleted(event)
+
+    # Always return 200 to acknowledge receipt
+    return jsonify({"received": True}), 200
+
+
+# ─── POST /api/v1/billing ───────────────────────────────────────────────────
+
+@app.route("/api/v1/billing", methods=["POST"])
+@require_api_key
+def api_billing():
+    """Redirect to Stripe Customer Portal for subscription management."""
+    customer_id = get_stripe_customer_id(request.key_hash)
+
+    if not customer_id:
+        return jsonify({
+            "error": "no_subscription",
+            "message": "No active subscription found. Upgrade first at /api/v1/upgrade.",
+        }), 404
+
+    portal_url = create_billing_portal_session(customer_id)
+    if not portal_url:
+        return jsonify({
+            "error": "portal_error",
+            "message": "Could not create billing portal session.",
+        }), 503
+
+    return jsonify({
+        "message": "Redirect to Stripe billing portal.",
+        "portal_url": portal_url,
+    }), 200
 
 
 # ─── Maintenance ──────────────────────────────────────────────────────────────

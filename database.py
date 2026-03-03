@@ -49,7 +49,10 @@ def init_db():
                 tier TEXT NOT NULL DEFAULT 'free',
                 created_at TEXT NOT NULL,
                 last_used_at TEXT,
-                is_active INTEGER NOT NULL DEFAULT 1
+                is_active INTEGER NOT NULL DEFAULT 1,
+                stripe_customer_id TEXT,
+                stripe_subscription_id TEXT,
+                subscription_status TEXT
             );
 
             CREATE TABLE IF NOT EXISTS usage_log (

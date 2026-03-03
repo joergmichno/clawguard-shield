@@ -504,7 +504,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
                     <li>Priority support</li>
                     <li>Usage dashboard</li>
                 </ul>
-                <a href="mailto:michno.jrg@gmail.com?subject=ClawGuard Shield Pro" class="btn-primary" style="display:block;">Contact for Pro</a>
+                <button onclick="upgradeTier('pro')" class="btn-primary" style="display:block;width:100%;border:none;">Upgrade to Pro</button>
             </div>
             <div class="price-card">
                 <div class="tier">Enterprise</div>
@@ -517,7 +517,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
                     <li>Dedicated support</li>
                     <li>Custom patterns (soon)</li>
                 </ul>
-                <a href="mailto:michno.jrg@gmail.com?subject=ClawGuard Shield Enterprise" class="btn-primary" style="display:block;">Contact for Enterprise</a>
+                <button onclick="upgradeTier('enterprise')" class="btn-primary" style="display:block;width:100%;border:none;">Upgrade to Enterprise</button>
             </div>
         </div>
     </div>
@@ -542,6 +542,9 @@ curl -X POST https://prompttools.co/api/v1/scan \
 </footer>
 
 <script>
+// Store API key in memory for upgrade flow
+let currentApiKey = localStorage.getItem('shield_api_key') || '';
+
 async function registerKey(e) {
     e.preventDefault();
     const email = document.getElementById('email').value;
@@ -562,8 +565,10 @@ async function registerKey(e) {
         const data = await resp.json();
 
         if (resp.ok) {
+            currentApiKey = data.api_key;
+            localStorage.setItem('shield_api_key', data.api_key);
             result.className = 'register-result success';
-            result.innerHTML = `Your API Key (save it now!):<br><br><strong>${data.api_key}</strong><br><br>Tier: ${data.tier} | Limit: ${data.daily_limit}/day | Max text: ${data.max_text_length} chars`;
+            result.innerHTML = `Your API Key (save it now!):<br><br><strong>${data.api_key}</strong><br><br>Tier: ${data.tier} | Limit: ${data.daily_limit}/day | Max text: ${data.max_text_length} chars<br><br><em>You can now upgrade to Pro or Enterprise above.</em>`;
         } else {
             result.className = 'register-result error';
             result.textContent = data.message || 'Registration failed.';
@@ -575,6 +580,47 @@ async function registerKey(e) {
 
     btn.disabled = false;
     btn.textContent = 'Get API Key';
+}
+
+async function upgradeTier(tier) {
+    if (!currentApiKey) {
+        // Prompt user to enter their key or register first
+        const key = prompt('Enter your API key to upgrade (or register below first):');
+        if (!key) return;
+        currentApiKey = key;
+    }
+
+    try {
+        const resp = await fetch('/api/v1/upgrade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': currentApiKey
+            },
+            body: JSON.stringify({ tier })
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            alert(data.message || 'Upgrade failed. Please try again or contact support.');
+        }
+    } catch (err) {
+        alert('Network error. Please try again.');
+    }
+}
+
+// Show success/cancel messages from Stripe redirect
+const params = new URLSearchParams(window.location.search);
+if (params.get('upgrade') === 'success') {
+    const tier = params.get('tier') || 'pro';
+    const result = document.getElementById('result');
+    result.className = 'register-result success';
+    result.innerHTML = `Upgrade to <strong>${tier}</strong> successful! Your API key has been upgraded. Check your email for the receipt.`;
+    result.style.display = 'block';
+    // Clean URL
+    window.history.replaceState({}, '', '/shield');
 }
 </script>
 
