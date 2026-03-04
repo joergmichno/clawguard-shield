@@ -8,6 +8,8 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/API-live-brightgreen)](https://prompttools.co/api/v1/health)
 
+🎯 **Live Demo:** [prompttools.co](https://prompttools.co)
+
 REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, and social engineering patterns. 42+ regex patterns, 6ms average scan time, zero ML inference.
 
 **Live Demo:** https://prompttools.co/api/v1/
@@ -300,6 +302,15 @@ python -m pytest tests/ -v
 - [ClawGuard Scan Action](https://github.com/joergmichno/clawguard-scan-action) — GitHub Action for CI/CD security scanning
 - [Prompt Lab](https://github.com/joergmichno/prompt-lab) — Interactive prompt injection playground ([Live Demo](https://prompttools.co))
 - [DocQA](https://github.com/joergmichno/docqa) — RAG-based document Q&A CLI
+
+## Ecosystem Integration
+
+| Component | Install / Link | Description |
+|-----------|---------------|-------------|
+| **ClawGuard** (Core Engine) | [github.com/joergmichno/clawguard](https://github.com/joergmichno/clawguard) | Open-source scanner powering the Shield API |
+| **Python SDK** | `pip install clawguard-shield` — [GitHub](https://github.com/joergmichno/clawguard-shield-python) | Python client library for the Shield API |
+| **GitHub Action** | [github.com/joergmichno/clawguard-scan-action](https://github.com/joergmichno/clawguard-scan-action) | CI/CD security scanning for pull requests |
+| **Prompt Lab** | [prompttools.co](https://prompttools.co) — [GitHub](https://github.com/joergmichno/prompt-lab) | Interactive prompt injection demo |
 
 ## License
 
