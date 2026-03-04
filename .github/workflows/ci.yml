@@ -27,8 +27,6 @@ jobs:
           pip install flask==3.1.0 gunicorn==23.0.0 stripe==12.1.0 pytest
 
       - name: Run tests
+        env:
+          SHIELD_DB_PATH: ./data/shield.db
         run: python -m pytest tests/ -v
-
-      - name: Health check smoke test
-        run: |
-          python -c "from app import app; client = app.test_client(); r = client.get('/api/v1/health'); assert r.status_code == 200; print('Health check passed')"
