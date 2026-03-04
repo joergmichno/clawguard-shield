@@ -2,15 +2,14 @@
 
 **Security Scanning REST API for AI Agents**
 
-[![Tests](https://img.shields.io/badge/tests-52%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-70%20passed-brightgreen)](tests/)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/API-live-brightgreen)](https://prompttools.co/api/v1/health)
 
 REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, and social engineering patterns. 36+ regex patterns, 6ms average scan time, zero ML inference.
 
-**Live API:** https://prompttools.co/api/v1/
-**Landing Page:** https://prompttools.co/shield
+**Live Demo:** https://prompttools.co/api/v1/
 **Core Scanner:** [ClawGuard](https://github.com/joergmichno/clawguard) (open-source, zero dependencies)
 
 ---
@@ -161,11 +160,10 @@ All errors return JSON with `error` and `message` fields.
 ```json
 {
   "error": "rate_limit_exceeded",
-  "message": "Daily limit of 100 requests exceeded. Upgrade to Pro for 10,000/day.",
+  "message": "Daily limit of 100 requests exceeded.",
   "tier": "free",
   "limit": 100,
-  "used": 100,
-  "upgrade_url": "https://prompttools.co/shield#pricing"
+  "used": 100
 }
 ```
 
@@ -185,13 +183,13 @@ All errors return JSON with `error` and `message` fields.
 
 Rate limits are enforced per API key on a daily sliding window (UTC).
 
-| Tier | Daily Limit | Max Text Length | Price |
-|------|-------------|-----------------|-------|
-| **Free** | 100 scans | 5,000 chars | Free |
-| **Pro** | 10,000 scans | 50,000 chars | 9 EUR/mo |
-| **Enterprise** | Unlimited | 200,000 chars | 49 EUR/mo |
+| Tier | Daily Limit | Max Text Length |
+|------|-------------|-----------------|
+| **Free** | 100 scans | 5,000 chars |
+| **Pro** | 10,000 scans | 50,000 chars |
+| **Enterprise** | Unlimited | 200,000 chars |
 
-When you exceed your limit, the API returns `429` with details about your usage and an upgrade link. Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`) are included on every scan response.
+The tier system demonstrates a multi-tenant API architecture with per-key rate limiting. When you exceed your limit, the API returns `429` with details about your usage. Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`) are included on every scan response.
 
 ## Architecture
 
@@ -283,10 +281,10 @@ The Docker setup includes:
 ```bash
 pip install pytest
 python -m pytest tests/ -v
-# 52 passed
+# 70 passed
 ```
 
-52 tests covering:
+70 tests covering:
 - All 6 API endpoints (scan, health, patterns, usage, register, index)
 - Authentication (key generation, hashing, validation, format checking)
 - Rate limiting (counting, enforcement, tier limits)
@@ -297,6 +295,8 @@ python -m pytest tests/ -v
 ## Related Projects
 
 - [ClawGuard](https://github.com/joergmichno/clawguard) — The open-source scanner this API wraps (38+ patterns, zero dependencies)
+- [ClawGuard Shield Python SDK](https://github.com/joergmichno/clawguard-shield-python) — Python client library ([PyPI](https://pypi.org/project/clawguard-shield/))
+- [ClawGuard Scan Action](https://github.com/joergmichno/clawguard-scan-action) — GitHub Action for CI/CD security scanning
 - [Prompt Lab](https://github.com/joergmichno/prompt-lab) — Interactive prompt injection playground ([Live Demo](https://prompttools.co))
 - [DocQA](https://github.com/joergmichno/docqa) — RAG-based document Q&A CLI
 
