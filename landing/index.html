@@ -367,10 +367,41 @@
         }
         footer a { color: var(--accent); text-decoration: none; }
 
+        .stats-inner {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
         @media (max-width: 768px) {
-            .stats { grid-template-columns: repeat(2, 1fr); }
+            .stats-inner { grid-template-columns: repeat(2, 1fr); gap: 16px; }
             .feature-grid, .pricing-grid { grid-template-columns: 1fr; }
             .register-form { flex-direction: column; }
+            .hero { padding: 48px 0 36px; }
+            .hero h1 { font-size: 28px; }
+            .hero p { font-size: 15px; }
+            nav .container { padding: 0 16px; }
+            .container { padding: 0 16px; }
+            .demo, .features, .pricing, .register { padding: 40px 0; }
+            .stat .num { font-size: 24px; }
+            .code-body { font-size: 11px; padding: 14px; }
+            .feature-card { padding: 20px; }
+            .price-card { padding: 24px; }
+            .price-card .price { font-size: 32px; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-inner { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .hero { padding: 32px 0 24px; }
+            .hero h1 { font-size: 24px; }
+            .hero p { font-size: 14px; margin-bottom: 24px; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .hero-actions a, .hero-actions button { width: 100%; text-align: center; }
+            .btn-primary, .btn-secondary { padding: 12px 24px; font-size: 14px; }
+            .code-body { font-size: 10px; overflow-x: auto; white-space: pre; }
+            .demo h2, .features h2, .pricing h2, .register h2 { font-size: 22px; }
+            .stat .num { font-size: 20px; }
+            .stat .label { font-size: 12px; }
         }
     </style>
 </head>
@@ -396,7 +427,7 @@
 </section>
 
 <section class="stats">
-    <div class="container" style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;">
+    <div class="container stats-inner">
         <div class="stat"><div class="num">36+</div><div class="label">Detection Patterns</div></div>
         <div class="stat"><div class="num">6ms</div><div class="label">Avg Response Time</div></div>
         <div class="stat"><div class="num">5</div><div class="label">Threat Categories</div></div>
