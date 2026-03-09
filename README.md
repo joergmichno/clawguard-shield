@@ -7,6 +7,8 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/API-live-brightgreen)](https://prompttools.co/api/v1/health)
+[![Uptime](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fprompttools.co%2Fapi%2Fv1%2Fhealth&query=%24.status&label=Status&color=brightgreen&style=flat)](https://prompttools.co/api/v1/health)
+[![Deployed](https://img.shields.io/badge/Deployed-Docker%20%7C%20Linux%20VPS-blue?style=flat&logo=docker&logoColor=white)](https://prompttools.co/api/v1/)
 
 🎯 **Live Demo:** [prompttools.co](https://prompttools.co)
 
