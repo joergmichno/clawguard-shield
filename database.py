@@ -85,16 +85,22 @@ def init_db():
                 ON api_keys(key_prefix);
         """)
 
+        # Migration: add newsletter_consent column if missing
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(api_keys)").fetchall()]
+        if "newsletter_consent" not in cols:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN newsletter_consent INTEGER NOT NULL DEFAULT 0")
+
 
 # ─── API Key Operations ──────────────────────────────────────────────────────
 
-def insert_api_key(key_hash: str, key_prefix: str, email: str, tier: str = "free"):
+def insert_api_key(key_hash: str, key_prefix: str, email: str, tier: str = "free",
+                   newsletter_consent: bool = False):
     """Store a new API key (hashed)."""
     now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO api_keys (key_hash, key_prefix, email, tier, created_at) VALUES (?, ?, ?, ?, ?)",
-            (key_hash, key_prefix, email, tier, now),
+            "INSERT INTO api_keys (key_hash, key_prefix, email, tier, created_at, newsletter_consent) VALUES (?, ?, ?, ?, ?, ?)",
+            (key_hash, key_prefix, email, tier, now, int(newsletter_consent)),
         )
 
 
@@ -133,6 +139,20 @@ def email_exists(email: str) -> bool:
             "SELECT 1 FROM api_keys WHERE email = ? AND is_active = 1", (email,)
         ).fetchone()
         return row is not None
+
+
+def get_all_emails(newsletter_only: bool = False) -> list[dict]:
+    """Get all registered emails. Optionally filter by newsletter consent."""
+    with get_db() as conn:
+        if newsletter_only:
+            rows = conn.execute(
+                "SELECT email, tier, created_at, newsletter_consent FROM api_keys WHERE is_active = 1 AND newsletter_consent = 1 ORDER BY created_at DESC"
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT email, tier, created_at, newsletter_consent FROM api_keys WHERE is_active = 1 ORDER BY created_at DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
 
 
 # ─── Usage Logging ────────────────────────────────────────────────────────────

@@ -49,6 +49,7 @@ class ScanResponse:
 class RegisterRequest:
     """API key registration request."""
     email: str
+    newsletter: bool = False
 
     def validate(self) -> Optional[str]:
         """Validate the registration. Returns error message or None."""

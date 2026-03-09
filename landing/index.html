@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClawGuard Shield — AI Agent Security API</title>
-    <meta name="description" content="Protect your AI agents from prompt injections, data exfiltration, and social engineering. REST API with 36+ detection patterns. Free tier available.">
+    <meta name="description" content="Protect your AI agents from prompt injections, data exfiltration, and social engineering. REST API with 42+ detection patterns. Free tier available.">
     <style>
         :root {
             --bg: #0a0a0f;
@@ -312,6 +312,7 @@
             max-width: 480px;
             margin: 0 auto;
             display: flex;
+            flex-wrap: wrap;
             gap: 12px;
         }
         .register-form input {
@@ -324,7 +325,23 @@
             font-size: 15px;
             outline: none;
         }
-        .register-form input:focus { border-color: var(--accent); }
+        .register-form input[type="email"]:focus { border-color: var(--accent); }
+        .newsletter-check {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+            cursor: pointer;
+            order: 3;
+        }
+        .newsletter-check input[type="checkbox"] {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+        }
         .register-form button {
             padding: 14px 28px;
             background: var(--accent);
@@ -428,7 +445,7 @@
 
 <section class="stats">
     <div class="container stats-inner">
-        <div class="stat"><div class="num">36+</div><div class="label">Detection Patterns</div></div>
+        <div class="stat"><div class="num">42+</div><div class="label">Detection Patterns</div></div>
         <div class="stat"><div class="num">6ms</div><div class="label">Avg Response Time</div></div>
         <div class="stat"><div class="num">5</div><div class="label">Threat Categories</div></div>
         <div class="stat"><div class="num">0</div><div class="label">Dependencies</div></div>
@@ -518,7 +535,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
                 <ul>
                     <li>100 scans / day</li>
                     <li>5,000 chars / request</li>
-                    <li>All 36+ patterns</li>
+                    <li>All 42+ patterns</li>
                     <li>JSON API response</li>
                     <li>CORS enabled</li>
                 </ul>
@@ -531,7 +548,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
                 <ul>
                     <li>10,000 scans / day</li>
                     <li>50,000 chars / request</li>
-                    <li>All 36+ patterns</li>
+                    <li>All 42+ patterns</li>
                     <li>Priority support</li>
                     <li>Usage dashboard</li>
                 </ul>
@@ -544,7 +561,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
                 <ul>
                     <li>Unlimited scans</li>
                     <li>200,000 chars / request</li>
-                    <li>All 36+ patterns</li>
+                    <li>All 42+ patterns</li>
                     <li>Dedicated support</li>
                     <li>Custom patterns (soon)</li>
                 </ul>
@@ -560,6 +577,7 @@ curl -X POST https://prompttools.co/api/v1/scan \
         <p class="sub">No credit card required. Start scanning in seconds.</p>
         <form class="register-form" onsubmit="return registerKey(event)">
             <input type="email" id="email" placeholder="your@email.com" required>
+            <label class="newsletter-check"><input type="checkbox" id="newsletter" checked> Keep me updated on new features &amp; security insights</label>
             <button type="submit" id="regBtn">Get API Key</button>
         </form>
         <div class="register-result" id="result"></div>
@@ -579,6 +597,7 @@ let currentApiKey = localStorage.getItem('shield_api_key') || '';
 async function registerKey(e) {
     e.preventDefault();
     const email = document.getElementById('email').value;
+    const newsletter = document.getElementById('newsletter').checked;
     const btn = document.getElementById('regBtn');
     const result = document.getElementById('result');
 
@@ -591,7 +610,7 @@ async function registerKey(e) {
         const resp = await fetch('/api/v1/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email, newsletter })
         });
         const data = await resp.json();
 

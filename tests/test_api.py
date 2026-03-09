@@ -286,6 +286,89 @@ class TestCORS:
         assert resp.status_code == 204
 
 
+class TestNewsletterConsent:
+    """Newsletter consent field on /api/v1/register."""
+
+    def test_register_with_newsletter_true(self, client):
+        resp = client.post(
+            "/api/v1/register",
+            json={"email": "news@example.com", "newsletter": True},
+        )
+        assert resp.status_code == 201
+
+    def test_register_with_newsletter_false(self, client):
+        resp = client.post(
+            "/api/v1/register",
+            json={"email": "nonews@example.com", "newsletter": False},
+        )
+        assert resp.status_code == 201
+
+    def test_register_without_newsletter_field(self, client):
+        resp = client.post(
+            "/api/v1/register",
+            json={"email": "default@example.com"},
+        )
+        assert resp.status_code == 201
+
+
+class TestAdminEmails:
+    """GET /api/v1/admin/emails — admin token required."""
+
+    def setup_method(self):
+        import os
+        os.environ["ADMIN_TOKEN"] = "test-admin-token"
+        import app as app_mod
+        app_mod.ADMIN_TOKEN = "test-admin-token"
+
+    def test_admin_emails_no_token(self, client):
+        resp = client.get("/api/v1/admin/emails")
+        assert resp.status_code == 403
+
+    def test_admin_emails_wrong_token(self, client):
+        resp = client.get(
+            "/api/v1/admin/emails",
+            headers={"X-Admin-Token": "wrong"},
+        )
+        assert resp.status_code == 403
+
+    def test_admin_emails_valid(self, client):
+        # Register a user first
+        client.post("/api/v1/register", json={"email": "admin-test@example.com", "newsletter": True})
+
+        resp = client.get(
+            "/api/v1/admin/emails",
+            headers={"X-Admin-Token": "test-admin-token"},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["total"] >= 1
+        assert any(e["email"] == "admin-test@example.com" for e in data["emails"])
+
+    def test_admin_emails_newsletter_filter(self, client):
+        client.post("/api/v1/register", json={"email": "yes@example.com", "newsletter": True})
+        client.post("/api/v1/register", json={"email": "no@example.com", "newsletter": False})
+
+        resp = client.get(
+            "/api/v1/admin/emails?newsletter=true",
+            headers={"X-Admin-Token": "test-admin-token"},
+        )
+        data = resp.get_json()
+        emails = [e["email"] for e in data["emails"]]
+        assert "yes@example.com" in emails
+        assert "no@example.com" not in emails
+
+    def test_admin_emails_csv_format(self, client):
+        client.post("/api/v1/register", json={"email": "csv@example.com"})
+
+        resp = client.get(
+            "/api/v1/admin/emails?format=csv",
+            headers={"X-Admin-Token": "test-admin-token"},
+        )
+        assert resp.status_code == 200
+        assert resp.content_type.startswith("text/csv")
+        assert "csv@example.com" in resp.get_data(as_text=True)
+
+
 class TestNotFound:
     """404 handler."""
 

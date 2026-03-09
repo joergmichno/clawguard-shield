@@ -38,6 +38,7 @@ from database import (
     email_exists,
     get_request_count_today,
     cleanup_old_rate_limits,
+    get_all_emails,
 )
 from models import ScanRequest, ScanResponse, RegisterRequest, HealthResponse
 from payments import (
@@ -277,7 +278,10 @@ def api_register():
             "message": "Request body must be valid JSON with an 'email' field.",
         }), 400
 
-    reg = RegisterRequest(email=data.get("email", "").strip().lower())
+    reg = RegisterRequest(
+        email=data.get("email", "").strip().lower(),
+        newsletter=bool(data.get("newsletter", False)),
+    )
 
     # Validate
     error = reg.validate()
@@ -297,7 +301,10 @@ def api_register():
     key_prefix = get_key_prefix(raw_key)
 
     # Store
-    insert_api_key(key_hash=key_hash, key_prefix=key_prefix, email=reg.email, tier="free")
+    insert_api_key(
+        key_hash=key_hash, key_prefix=key_prefix, email=reg.email, tier="free",
+        newsletter_consent=reg.newsletter,
+    )
 
     return jsonify({
         "message": "API key created successfully. Store it safely — it cannot be recovered!",
@@ -399,6 +406,32 @@ def api_billing():
         "message": "Redirect to Stripe billing portal.",
         "portal_url": portal_url,
     }), 200
+
+
+# ─── Admin Endpoints ─────────────────────────────────────────────────────────
+
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+
+@app.route("/api/v1/admin/emails", methods=["GET"])
+def admin_emails():
+    """Export registered emails (admin-only, token-protected)."""
+    token = request.headers.get("X-Admin-Token", "")
+    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+        return jsonify({"error": "unauthorized", "message": "Invalid admin token."}), 403
+
+    newsletter_only = request.args.get("newsletter", "").lower() in ("true", "1", "yes")
+    fmt = request.args.get("format", "json").lower()
+
+    emails = get_all_emails(newsletter_only=newsletter_only)
+
+    if fmt == "csv":
+        lines = ["email,tier,created_at,newsletter_consent"]
+        for e in emails:
+            lines.append(f"{e['email']},{e['tier']},{e['created_at']},{e['newsletter_consent']}")
+        return "\n".join(lines), 200, {"Content-Type": "text/csv", "Content-Disposition": "attachment; filename=emails.csv"}
+
+    return jsonify({"total": len(emails), "emails": emails}), 200
 
 
 # ─── Maintenance ──────────────────────────────────────────────────────────────
