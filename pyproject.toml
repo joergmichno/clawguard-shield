@@ -28,7 +28,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://prompttools.co/shield"
-Repository = "https://github.com/joergmichno/clawguard"
+Repository = "https://github.com/joergmichno/clawguard-shield"
 Documentation = "https://prompttools.co/shield/docs"
 
 [project.scripts]

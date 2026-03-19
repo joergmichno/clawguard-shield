@@ -894,6 +894,126 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Prompt Injection",
         "Attempt to skip safety verification. OWASP Agentic ASI09: Human-Agent Trust Exploitation.",
     ),
+    (
+        "Delegation Spoofing",
+        r"(?i)(acting\s+on\s+behalf\s+of|authorized\s+by|delegated\s+by|sent\s+by|instructed\s+by|on\s+orders?\s+from|per\s+request\s+of|im\s+Auftrag\s+von|bevollm.chtigt\s+durch|beauftragt\s+von|au\s+nom\s+de|en\s+nombre\s+de|per\s+conto\s+di)\s+.{1,50}?(admin|system|ceo|cto|manager|direktor|supervisor|controller)",
+        Severity.HIGH,
+        "Social Engineering",
+        "Delegation spoofing: Claims to act on behalf of authority figure. Adversa MCP TOP 25: Identity Spoofing.",
+    ),
+    (
+        "Confused Deputy",
+        r"(?i)(use\s+your\s+(admin|root|system|elevated|special)\s+(access|permissions?|privileges?|rights?)\s+(to|for|and)|since\s+you\s+have\s+(write|read|admin|root|execute|delete)\s+(access|permissions?)\s*[,.]|leverage\s+your\s+(credentials?|access|permissions?)\s+to|with\s+your\s+(elevated|admin|root|system)\s+(access|permissions?|privileges?)\s*[,.]|nutze?\s+(deine|Ihre)\s+(Admin|Root|System|erhoehten)\s*(Zugriff|Rechte|Berechtigungen)|utilise[rz]?\s+(vos|tes)\s+(droits|permissions?)\s+(admin|root|systeme))",
+        Severity.HIGH,
+        "Privilege Escalation",
+        "Confused Deputy attack: Attempts to leverage the agent permissions for unauthorized actions. Adversa MCP TOP 25.",
+    ),
+    (
+        "Tool Name Spoofing",
+        r"(?i)(tool\s+(named?|called)\s+.{1,30}?(that\s+(actually|really|secretly)|but\s+(actually|really|instead))|register.*tool.*\s+(impersonat|pretend|disguise|mimic|spoof)|fake\s+tool\s+(registration|definition|metadata)|homoglyph|lookalike\s+tool|tool.{1,20}?(typosquat|name.?jack))",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "Tool name spoofing: Deceptive tool naming to impersonate trusted tools. Adversa MCP TOP 25.",
+    ),
+    (
+        "Tool Shadowing",
+        r"(?i)(register.*tool.{1,30}?(same|identical|duplicate|replace|override|overwrite)\s+(name|function|endpoint)|tool.{1,20}?(shadow|hijack|intercept|mitm|man.in.the.middle)|duplicate\s+tool\s+(registration|definition|name)|existing\s+tool.{1,20}?(replace|override|overwrite|shadow))",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "Tool shadowing: Attempt to override legitimate tool with malicious duplicate. CoSAI Threat #7.",
+    ),
+    (
+        "Toxic Flow - Data Exfiltration Chain",
+        r"(?i)(read.{1,30}?(then|and|before|after).{1,30}?(send|post|upload|transmit|exfiltrat)|fetch.{1,30}?(encode|encrypt|compress).{1,30}?(send|post|http|url|webhook)|extract.{1,30}?(data|content|secret|key|token).{1,30}?(forward|relay|pipe|redirect))",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "Toxic flow: Multi-step data exfiltration chain (read+encode+send). CoSAI Threat #8.",
+    ),
+    (
+        "Toxic Flow - Privilege Chain",
+        r"(?i)(first.{1,30}?(access|read|get).{1,30}?(then|next|after).{1,30}?(modify|write|delete|execute)|chain.{1,30}?(tool|function|api).{1,30}?(calls?|invocations?|requests?))",
+        Severity.HIGH,
+        "Privilege Escalation",
+        "Toxic flow: Multi-step privilege escalation chain. CoSAI Threat #8.",
+    ),
+    (
+        "Rug Pull - Tool Version Drift",
+        r"(?i)(tool.{1,20}?(version|update|upgrade).{1,30}?(changed|modified|altered|different|unexpected)|previous(ly)?.{1,20}?(safe|trusted|verified).{1,20}?(now|suddenly|unexpected)|tool.{1,20}?(behavior|behaviour|function).{1,20}?(changed|different|altered)|rug.?pull|bait.{1,10}?(and|n).{1,10}?switch)",
+        Severity.HIGH,
+        "Tool Manipulation",
+        "Rug pull: Tool behavior changed after initial trust was established. Adversa MCP TOP 25.",
+    ),
+    (
+        "Tool Poisoning - Metadata Injection",
+        r"(?i)(tool.{1,20}?(description|metadata|schema|manifest).{1,30}?(hidden|inject|embed|conceal)|hidden.{1,20}?(instruction|command|directive).{1,20}?(in|inside|within).{1,20}?(description|metadata|schema)|metadata.{1,20}?(poison|inject|tamper|manipulat))",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "Tool poisoning via metadata injection. Hidden instructions in tool descriptions. Adversa MCP TOP 25.",
+    ),
+    (
+        "Tool Poisoning - Return Value Manipulation",
+        r"(?i)(tool.{1,20}?(return|output|response).{1,30}?(inject|embed|append|prepend|modify).{1,30}?(instruction|command|prompt)|manipulat.{1,20}?(tool|function|api).{1,20}?(output|return|response)|poison.{1,20}?(return|output|result))",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "Tool poisoning via return value manipulation. Malicious instructions injected in tool output. Adversa MCP TOP 25.",
+    ),
+    # --- v0.6.1: OWASP Agentic ASI07 — Insecure Inter-Agent Communication ---
+    (
+        "Inter-Agent Instruction Relay (ASI07)",
+        r"(?i)(forward|relay|pass|send|transmit|propagate)\s+(this|these|the\s+following)?\s*(instructions?|commands?|directives?|messages?|prompts?)\s+(to|for|at)\s+(the\s+)?(other|next|downstream|receiving|target|secondary)\s+(agent|model|assistant|llm|service)",
+        Severity.HIGH,
+        "Inter-Agent Security",
+        "Inter-agent instruction relay: Attempt to inject commands via agent-to-agent communication. OWASP Agentic ASI07.",
+    ),
+    (
+        "Cross-Agent Prompt Injection (ASI07)",
+        r"(?i)(when\s+(the\s+)?(next|other|downstream|target)\s+(agent|model|assistant)\s+(calls?|contacts?|queries?|asks?)|include\s+this\s+in\s+your\s+(response|output|reply)\s+to\s+(the\s+)?(other|next|calling|requesting)\s+(agent|model|service)|prepare\s+(this|these|the\s+following)\s+(payload|instructions?|commands?)\s+for\s+(the\s+)?(next|downstream|receiving)\s+(agent|model))",
+        Severity.CRITICAL,
+        "Inter-Agent Security",
+        "Cross-agent prompt injection: Planting instructions for downstream agents. OWASP Agentic ASI07.",
+    ),
+    (
+        "Unvalidated Agent Delegation (ASI07)",
+        r"(?i)(agent.{1,20}?(delegate|transfer|hand\s*off|route|redirect).{1,30}?(to|for)\s+(another|different|external|untrusted)|without\s+(authenticat|validat|verif).{1,30}?agent.{1,20}?(communicat|message|request)|bypass.{1,20}?(agent|inter.?agent)\s+(auth|validat|verif)|unvalidated.{1,20}?(delegation|handoff|transfer)\s+(chain|request))",
+        Severity.HIGH,
+        "Inter-Agent Security",
+        "Unvalidated agent delegation: Agent communication without proper authentication. OWASP Agentic ASI07.",
+    ),
+    (
+        "Arabic Prompt Injection",
+        r"(تجاهل|تخطى|أهمل|ألغِ|تجاوز).{0,30}?(التعليمات|الأوامر|القواعد|النظام)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Arabic prompt injection: Ignore/bypass instructions pattern. Multilingual coverage.",
+    ),
+    (
+        "Hindi Prompt Injection",
+        r"(अनदेखा|नज़रअंदाज़|पिछले|निर्देश).{0,30}?(निर्देश|नियम|आदेश|हदायत)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Hindi prompt injection: Ignore/bypass instructions pattern. Multilingual coverage.",
+    ),
+    (
+        "Arabic Role Override",
+        r"(أنتِ?\s+الآن|دورك\s+الجديد|تصرف\s+ك|أنت\s+عبارة\s+عن)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Arabic role/identity override attempt. Multilingual coverage.",
+    ),
+    (
+        "Hindi Role Override",
+        r"(तुम\s+अब|तुम्हारा\s+नया\s+काम|अपनी\s+भूमिका\s+बदलो|तुम\s+एक\s+.{1,20}?हो)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Hindi role/identity override attempt. Multilingual coverage.",
+    ),
+    (
+        "System Controller Impersonation",
+        r"(?i)(this\s+(message|instruction|command|request)\s+(is\s+|was\s+)?(from|by)\s+(the\s+)?(system|central|master)\s*(controller|manager|orchestrator|coordinator)|diese\s+(Nachricht|Anweisung)\s+(kommt\s+)?(vom|aus\s+dem)\s+(System|Zentral)\s*(controller|steuerung))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "System controller impersonation. Fake authority claim. Adversa MCP TOP 25: Identity Spoofing.",
+    ),
 ]
 
 # --- v0.4.0: OWASP LLM02/LLM04 Patterns ---
@@ -990,6 +1110,34 @@ def _normalize_homoglyphs(text: str) -> str:
     return text.translate(HOMOGLYPH_MAP)
 
 
+def _normalize_fullwidth(text: str) -> str:
+    """Convert fullwidth Unicode characters to ASCII equivalents."""
+    import unicodedata
+    result = []
+    for c in text:
+        nfkd = unicodedata.normalize("NFKC", c)
+        result.append(nfkd)
+    return "".join(result)
+
+
+def _strip_null_bytes(text: str) -> str:
+    """Remove null bytes, control characters, and invisible formatters used for evasion."""
+    return text.translate({
+        0x00: None,   # Null byte
+        0x08: None,   # Backspace
+        0xAD: None,   # Soft hyphen
+        0xFEFF: None, # BOM / zero-width no-break space
+        0x2060: None, # Word joiner
+        0x2061: None, # Function application
+        0x2062: None, # Invisible times
+        0x2063: None, # Invisible separator
+        0x2064: None, # Invisible plus
+        0xFFF9: None, # Interlinear annotation anchor
+        0xFFFA: None, # Interlinear annotation separator
+        0xFFFB: None, # Interlinear annotation terminator
+    })
+
+
 def _decode_base64_fragments(text: str) -> str:
     """Detect and decode inline Base64 fragments that look like encoded commands."""
     import base64
@@ -1061,6 +1209,14 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         decoded = _decode_base64_fragments(line)
         if decoded != line and decoded not in line_variants:
             line_variants.append(decoded)
+        # Fullwidth Unicode normalization
+        fullwidth = _normalize_fullwidth(line)
+        if fullwidth != line and fullwidth not in line_variants:
+            line_variants.append(fullwidth)
+        # Null-byte / control-char stripping
+        nullfree = _strip_null_bytes(line)
+        if nullfree != line and nullfree not in line_variants:
+            line_variants.append(nullfree)
 
         for name, compiled, severity, category, recommendation in COMPILED_PATTERNS:
             matched_any = False
