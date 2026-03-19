@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clawguard-shield"
+version = "0.5.0"
+description = "EU AI Act Compliance Scanner — The Firewall for Autonomous AI Agents"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Jörg Michno", email = "michno.jrg@gmail.com"},
+]
+keywords = ["ai-security", "prompt-injection", "llm-firewall", "eu-ai-act", "compliance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://prompttools.co/shield"
+Repository = "https://github.com/joergmichno/clawguard"
+Documentation = "https://prompttools.co/shield/docs"
+
+[project.scripts]
+clawguard = "clawguard_shield.cli:main"
+
+[project.optional-dependencies]
+api = ["flask>=3.1.0", "gunicorn>=23.0.0"]
+payments = ["stripe>=12.0.0"]
+reports = ["fpdf2>=2.8.0"]
+dev = ["pytest>=7.0", "ruff>=0.4.0"]
+
+[tool.setuptools.packages.find]
+include = ["clawguard_shield*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120

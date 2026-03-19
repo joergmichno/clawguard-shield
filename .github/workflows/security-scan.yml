@@ -1,0 +1,37 @@
+name: ClawGuard Security Scan
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  clawguard-scan:
+    name: Scan for prompt injection vulnerabilities
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ClawGuard Shield
+        run: pip install -e .
+
+      - name: Run ClawGuard Scanner (SARIF)
+        run: |
+          clawguard --dir . --ext .py,.yaml,.yml,.json,.md,.prompt --sarif --quiet > results.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+          category: clawguard-shield

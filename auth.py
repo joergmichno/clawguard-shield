@@ -89,22 +89,25 @@ def require_api_key(f):
 
 TIER_LIMITS = {
     "free": {
-        "daily_limit": 100,
+        "daily_limit": None,  # not daily-limited
+        "monthly_limit": 3,
         "max_text_length": 5_000,
         "name": "Free",
         "price_eur": 0,
     },
     "pro": {
-        "daily_limit": 10_000,
+        "daily_limit": 1_000,
+        "monthly_limit": None,
         "max_text_length": 50_000,
         "name": "Pro",
-        "price_eur": 9,
+        "price_eur": 49,
     },
     "enterprise": {
         "daily_limit": None,  # unlimited
+        "monthly_limit": None,
         "max_text_length": 200_000,
         "name": "Enterprise",
-        "price_eur": 49,
+        "price_eur": 199,
     },
 }
 

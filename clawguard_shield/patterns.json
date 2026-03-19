@@ -1,0 +1,346 @@
+{
+  "version": "0.5.0",
+  "prompt_injection": [
+    {
+      "name": "Direct Override (EN)",
+      "regex": "(?i)ignore\\s+(all\\s+)?(previous|prior|above|earlier)\\s+(instructions?|rules?|prompts?|guidelines?)",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "BLOCK this input immediately. This is a classic prompt injection attempting to override the agent's system instructions."
+    },
+    {
+      "name": "Direct Override (DE)",
+      "regex": "(?i)ignoriere?\\s+(alle\\s+)?(vorherigen?|bisherigen?|obigen?)\\s+(Anweisunge?n?|Regeln?|Instruktione?n?|Befehle?)",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "BLOCKIEREN. Klassische Prompt-Injection die versucht, die Systemanweisungen zu überschreiben."
+    },
+    {
+      "name": "New Instructions Override",
+      "regex": "(?i)(you\\s+are\\s+now|ab\\s+jetzt\\s+bist\\s+du|from\\s+now\\s+on\\s+you\\s+are|your\\s+new\\s+(role|instructions?|task)\\s+(is|are))",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "BLOCK. Attempt to redefine the agent's identity or role mid-conversation."
+    },
+    {
+      "name": "System Prompt Extraction",
+      "regex": "(?i)(show|reveal|print|display|output|repeat|give\\s+me|zeig|nenne|wiederhole)\\s+(.{0,40}?)(system\\s*prompt|initial\\s*prompt|hidden\\s*prompt|Systemprompt|internal\\s+instructions?|original\\s+instructions?|geheime?n?\\s+Anweisunge?n?|interne?n?\\s+Anweisunge?n?|deine?n?\\s+Anweisunge?n?)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "This input attempts to extract the agent's system prompt. Sensitive internal instructions could be leaked."
+    },
+    {
+      "name": "Role-Play Escape",
+      "regex": "(?i)(pretend|act\\s+as\\s+if|imagine|tu\\s+so\\s+als|stell\\s+dir\\s+vor).{0,50}(no\\s+rules?|no\\s+restrictions?|keine\\s+Regeln?|without\\s+limits?|ohne\\s+Einschränkungen?)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Jailbreak attempt via role-play scenario to bypass safety constraints."
+    },
+    {
+      "name": "Delimiter Injection",
+      "regex": "(```system|<\\|im_start\\|>|<\\|im_end\\|>|\\[INST\\]|\\[\\/INST\\]|<<SYS>>|<\\/SYS>|<\\|system\\|>|<\\|user\\|>|<\\|assistant\\|>)",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "CRITICAL: Injection of model-specific delimiters to manipulate the conversation structure. This is a sophisticated attack."
+    },
+    {
+      "name": "Encoded Bypass (Base64 hint)",
+      "regex": "(?i)(decode|base64|atob|eval)\\s*\\(.{0,100}\\)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Possible attempt to smuggle encoded payloads past text filters."
+    },
+    {
+      "name": "Token Smuggling",
+      "regex": "(?i)(ignore|bypass|skip|disable)\\s+(safety|filter|guard|moderation|content\\s*policy|Sicherheit|Schutz)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Attempt to explicitly disable or bypass security filters."
+    },
+    {
+      "name": "Synonym Override (EN)",
+      "regex": "(?i)(disregard|forget|dismiss|override|overrule|nullify|void|abandon|drop|suppress|set\\s+aside|throw\\s+out)\\s+(all\\s+)?(previous|prior|above|earlier|preceding|antecedent|foregoing|existing|current|original)\\s+(instructions?|rules?|prompts?|guidelines?|directives?|regulations?|constraints?|policies?|orders?|commands?)",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "BLOCK: Synonym-based prompt injection detected. Uses alternative vocabulary to bypass basic keyword filters."
+    },
+    {
+      "name": "Synonym Override (DE)",
+      "regex": "(?i)(vergiss|verwirf|übergehe?|überschreibe?|missachte|setze?\\s+außer\\s+Kraft|hebe?\\s+auf)\\s+(alle\\s+)?(vorherigen?|bisherigen?|obigen?|bestehenden?|aktuellen?|ursprünglichen?)\\s+(Anweisunge?n?|Regeln?|Instruktione?n?|Befehle?|Richtlinie?n?|Vorgabe?n?|Vorschrifte?n?)",
+      "severity": "CRITICAL",
+      "category": "Prompt Injection",
+      "recommendation": "BLOCKIEREN: Synonym-basierte Prompt-Injection auf Deutsch erkannt."
+    },
+    {
+      "name": "Indirect Instruction Reset",
+      "regex": "(?i)(start\\s+(fresh|over|anew|from\\s+scratch)\\s+.{0,20}(instruction|context|prompt|conversation|session|memory|rule)|begin\\s+a\\s+new\\s+(session|context|conversation)|reset\\s+(your|all)\\s+(memory|context|instructions?)|fang\\s+(neu|von\\s+vorne)\\s+an\\s+.{0,20}(Anweisung|Kontext|Regel|Sitzung))",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Attempt to reset the agent's instruction context via indirect phrasing."
+    },
+    {
+      "name": "Forget/Reset Override",
+      "regex": "(?i)(forget\\s+(everything|all|it\\s+all)|new\\s+session|wipe\\s+(your\\s+)?memory)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Context wipe attempt using 'forget everything' or 'new session' phrasing."
+    },
+    {
+      "name": "Indirect Prompt Extraction",
+      "regex": "(?i)(disclose|leak|expose|divulge|dump)\\s+.{0,30}(instructions?|prompt|config|rules?|settings?|parameters?)",
+      "severity": "HIGH",
+      "category": "Prompt Injection",
+      "recommendation": "Indirect attempt to extract system prompt using synonyms like disclose/leak/expose."
+    }
+  ],
+  "dangerous_commands": [
+    {
+      "name": "Destructive Shell Command",
+      "regex": "(?:rm\\s+-[rRf]{1,3}\\s+[\\\\/]|r\\s+m\\s+.{0,5}-\\s*r\\s*f|mkfs\\s|dd\\s+if=|format\\s+[A-Z]:|\\:\\(\\)\\s*\\{\\s*\\:\\|\\:\\s*\\&\\s*\\}|chmod\\s+[0-7]*777\\s+\\/etc)",
+      "severity": "CRITICAL",
+      "category": "Dangerous Command",
+      "recommendation": "CRITICAL: Destructive system command detected (disk wipe, fork bomb, or recursive delete)."
+    },
+    {
+      "name": "Remote Code Execution",
+      "regex": "(?:curl\\s+.{0,100}\\|\\s*(?:ba)?sh|wget\\s+.{0,100}\\|\\s*(?:ba)?sh|python[3]?\\s+-c\\s+['\\\"].*(?:exec|eval|import\\s+os|base64)|\\$\\(\\s*curl\\s+.{0,100}\\))",
+      "severity": "CRITICAL",
+      "category": "Dangerous Command",
+      "recommendation": "CRITICAL: Pipe-to-shell pattern detected. This downloads and executes remote code without inspection."
+    },
+    {
+      "name": "Reverse Shell",
+      "regex": "(?:(?:bash|sh|nc|ncat)\\s+.{0,50}(?:\\/dev\\/tcp|mkfifo|nc\\s+-[elp])|python[3]?\\s+-c\\s+['\\\"].*socket.*connect|nc\\s+-[elp]\\s+.{0,30}\\d{2,5})",
+      "severity": "CRITICAL",
+      "category": "Dangerous Command",
+      "recommendation": "CRITICAL: Reverse shell pattern detected. An attacker is attempting to gain remote command access."
+    },
+    {
+      "name": "Sudoers Manipulation",
+      "regex": "(?:>>?\\s*\\/etc\\/sudoers|visudo|NOPASSWD\\s*:\\s*ALL)",
+      "severity": "CRITICAL",
+      "category": "Dangerous Command",
+      "recommendation": "CRITICAL: Attempt to modify sudoers file for unauthorized privilege escalation."
+    },
+    {
+      "name": "Privilege Escalation",
+      "regex": "(?:sudo\\s+(?:su|chmod\\s+[0-7]*777|chown\\s+root)|chmod\\s+[0-7]*4[0-7]{3}\\s|SUID|setuid)",
+      "severity": "HIGH",
+      "category": "Dangerous Command",
+      "recommendation": "Privilege escalation attempt detected. The command tries to elevate system permissions."
+    },
+    {
+      "name": "Package / Dependency Install",
+      "regex": "(?:pip\\s+install|npm\\s+install|apt\\s+install|yum\\s+install|brew\\s+install)\\s+(?!--help)",
+      "severity": "MEDIUM",
+      "category": "Dangerous Command",
+      "recommendation": "Software installation command detected. Verify the package source for supply-chain safety."
+    }
+  ],
+  "python_obfuscation": [
+    {
+      "name": "Python getattr Obfuscation",
+      "regex": "(?:getattr\\s*\\(\\s*\\w+\\s*,\\s*['\\\"].+['\\\"]\\s*\\))",
+      "severity": "CRITICAL",
+      "category": "Code Obfuscation",
+      "recommendation": "CRITICAL: Python getattr() used to dynamically resolve functions. This is a common technique to bypass static code analysis (e.g., getattr(os, 'sys'+'tem'))."
+    },
+    {
+      "name": "Python eval/exec",
+      "regex": "(?:(?:eval|exec|compile)\\s*\\(\\s*(?:['\\\"]|[a-zA-Z_]))",
+      "severity": "CRITICAL",
+      "category": "Code Obfuscation",
+      "recommendation": "CRITICAL: Dynamic code execution via eval()/exec()/compile(). This can execute arbitrary obfuscated payloads."
+    },
+    {
+      "name": "Python __import__",
+      "regex": "(?:__import__\\s*\\(|importlib\\.import_module\\s*\\()",
+      "severity": "HIGH",
+      "category": "Code Obfuscation",
+      "recommendation": "Dynamic module import detected. Used to load dangerous modules (os, subprocess, socket) at runtime."
+    },
+    {
+      "name": "Python String Concatenation Bypass",
+      "regex": "(?:['\\\"][a-z]{1,6}['\\\"]\\s*\\+\\s*['\\\"][a-z]{1,6}['\\\"])",
+      "severity": "MEDIUM",
+      "category": "Code Obfuscation",
+      "recommendation": "String concatenation pattern detected (e.g., 'sys'+'tem'). Often used to evade keyword-based filters."
+    },
+    {
+      "name": "Python Dangerous File I/O",
+      "regex": "(?:open\\s*\\(\\s*['\\\"]?\\/(?:etc|proc|sys|dev|root|home|tmp|var|data)[\\/'\\\"]|open\\s*\\(\\s*['\\\"].*(?:shadow|passwd|id_rsa|authorized_keys|\\.env|config|secret|token|key))",
+      "severity": "CRITICAL",
+      "category": "Code Obfuscation",
+      "recommendation": "CRITICAL: Python file read targeting sensitive system paths or credential files."
+    },
+    {
+      "name": "Python subprocess/os.system",
+      "regex": "(?:(?:subprocess|os)\\s*\\.\\s*(?:system|popen|call|run|Popen|exec[lv]?[pe]?)\\s*\\(|(?:subprocess|os)\\s*\\[\\s*['\\\"](?:system|popen|call|run)['\\\"])",
+      "severity": "CRITICAL",
+      "category": "Code Obfuscation",
+      "recommendation": "CRITICAL: Direct OS command execution via Python subprocess/os module."
+    },
+    {
+      "name": "Python Socket Connection",
+      "regex": "(?:socket\\.(?:socket|create_connection|connect)\\s*\\(|from\\s+socket\\s+import)",
+      "severity": "HIGH",
+      "category": "Code Obfuscation",
+      "recommendation": "Network socket creation detected. Could be used for reverse shells or data exfiltration."
+    },
+    {
+      "name": "Python Magic Attributes",
+      "regex": "(?:__builtins__|__globals__|__subclasses__|__class__|__bases__|__mro__|__dict__)",
+      "severity": "CRITICAL",
+      "category": "Code Obfuscation",
+      "recommendation": "CRITICAL: Access to Python magic attributes detected. This is a reflection-based attack to bypass import restrictions and access dangerous builtins."
+    },
+    {
+      "name": "Python setattr/delattr Reflection",
+      "regex": "(?:(?:setattr|delattr)\\s*\\(\\s*\\w+\\s*,\\s*['\\\"])",
+      "severity": "HIGH",
+      "category": "Code Obfuscation",
+      "recommendation": "Dynamic attribute manipulation via setattr/delattr. Can be used to inject malicious functions at runtime."
+    },
+    {
+      "name": "Suspicious open() in Agent Input",
+      "regex": "(?:open\\s*\\(\\s*['\\\"]|open\\s*\\(\\s*[a-zA-Z_]+\\s*[,\\)]|\\['open'\\]|\\[\\\"open\\\"\\])",
+      "severity": "HIGH",
+      "category": "Code Obfuscation",
+      "recommendation": "File open() call detected in agent input. In an agent context, direct file operations are suspicious and should be reviewed."
+    },
+    {
+      "name": "Multi-Part String Assembly",
+      "regex": "(?:['\\\"][^'\\\"]{1,8}['\\\"]\\s*\\+\\s*['\\\"][^'\\\"]{1,8}['\\\"]\\s*\\+\\s*['\\\"][^'\\\"]{1,8}['\\\"])",
+      "severity": "HIGH",
+      "category": "Code Obfuscation",
+      "recommendation": "Three or more short string fragments concatenated. Classic obfuscation technique to hide API keys, commands, or module names from static analysis."
+    }
+  ],
+  "data_exfiltration": [
+    {
+      "name": "Fragmented Secret Assembly",
+      "regex": "(?:(?:api[_-]?key|secret|token|password|key)\\s*=\\s*['\\\"][^'\\\"]{2,8}['\\\"]\\s*\\+\\s*['\\\"])",
+      "severity": "HIGH",
+      "category": "Data Exfiltration",
+      "recommendation": "API key or secret being assembled from string fragments to evade detection."
+    },
+    {
+      "name": "API Key Leak",
+      "regex": "(?:(?:api[_-]?key|apikey|api[_-]?secret|access[_-]?token|auth[_-]?token|bearer)\\s*[:=]\\s*['\\\"]?[A-Za-z0-9_\\-]{20,})",
+      "severity": "CRITICAL",
+      "category": "Data Exfiltration",
+      "recommendation": "CRITICAL: Hardcoded API key or access token found. This credential should be rotated immediately."
+    },
+    {
+      "name": "Private Key Material",
+      "regex": "(?:-----BEGIN\\s+(?:RSA|EC|DSA|OPENSSH|PGP)?\\s*PRIVATE\\s+KEY-----)",
+      "severity": "CRITICAL",
+      "category": "Data Exfiltration",
+      "recommendation": "CRITICAL: Private key material detected in text. This key is compromised and must be revoked."
+    },
+    {
+      "name": "Password in Cleartext",
+      "regex": "(?i)(?:password|passwort|passwd|kennwort|pwd)\\s*[:=]\\s*['\\\"]?[^\\s'\\\"]{4,}",
+      "severity": "HIGH",
+      "category": "Data Exfiltration",
+      "recommendation": "Cleartext password detected. Never store or transmit passwords in plain text."
+    },
+    {
+      "name": "Database Connection String",
+      "regex": "(?:(?:mongodb|postgres|mysql|redis|sqlite):\\/\\/[^\\s]+|Data\\s+Source=[^\\s;]+)",
+      "severity": "HIGH",
+      "category": "Data Exfiltration",
+      "recommendation": "Database connection string with potential credentials detected."
+    },
+    {
+      "name": "Email Harvesting Pattern",
+      "regex": "(?i)(?:send|forward|mail|email|send(?:en?)?)\\s+.{0,40}?(?:to|an|nach)\\s+[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}",
+      "severity": "MEDIUM",
+      "category": "Data Exfiltration",
+      "recommendation": "Instruction to send data to an external email address. Verify recipient before proceeding."
+    },
+    {
+      "name": "Webhook Exfiltration",
+      "regex": "(?:(?:https?:\\/\\/)?(?:hooks\\.slack\\.com|discord(?:app)?\\.com\\/api\\/webhooks|webhook\\.site|requestbin|pipedream)\\/[^\\s]+)",
+      "severity": "HIGH",
+      "category": "Data Exfiltration",
+      "recommendation": "Outbound webhook URL detected. Data may be exfiltrated to an external service."
+    }
+  ],
+  "social_engineering": [
+    {
+      "name": "Urgency Manipulation",
+      "regex": "(?i)(urgent|immediately|right\\s+now|sofort|dringend|jetzt\\s+sofort|without\\s+delay|ohne\\s+Verzögerung).{0,80}(send|execute|run|delete|pay|transfer|send(?:en?)?|ausführen|löschen|zahlen|überweisen)",
+      "severity": "MEDIUM",
+      "category": "Social Engineering",
+      "recommendation": "Urgency + action pattern detected. Pressure tactics are a common social engineering technique."
+    },
+    {
+      "name": "Authority Impersonation",
+      "regex": "(?i)(i(?:'m|\\s+am)\\s+(your|the)\\s+(admin|owner|creator|boss|CEO|supervisor|manager|system\\s+administrator)|ich\\s+bin\\s+(dein|der)\\s+(Admin|Besitzer|Ersteller|Chef|Vorgesetzter|Systemadministrator))",
+      "severity": "HIGH",
+      "category": "Social Engineering",
+      "recommendation": "Authority impersonation detected. Verify the claimed identity through a separate channel."
+    },
+    {
+      "name": "Confidentiality Trap",
+      "regex": "(?i)(don't\\s+tell|do\\s+not\\s+share|keep\\s+this\\s+(secret|private|between\\s+us)|sag\\s+(das\\s+)?niemandem|behalte?\\s+(das\\s+)?für\\s+dich)",
+      "severity": "MEDIUM",
+      "category": "Social Engineering",
+      "recommendation": "Secrecy instruction detected. Legitimate requests don't require concealment from the system owner."
+    },
+    {
+      "name": "Approval Bypass (LLM08)",
+      "regex": "(?i)(don't\\s+ask|don't\\s+confirm|don't\\s+verify|skip\\s+(approval|confirmation|verification)|auto[_-]?(execute|approve|run)|ohne\\s+R(?:ue|ü)ckfrage|ohne\\s+Best(?:ae|ä)tigung|nicht\\s+(fragen|nachfragen|best(?:ae|ä)tigen))",
+      "severity": "HIGH",
+      "category": "Social Engineering",
+      "recommendation": "Attempt to bypass human approval for agent actions. OWASP LLM08: Excessive Agency risk."
+    },
+    {
+      "name": "Model Extraction (LLM10)",
+      "regex": "(?i)(export\\s+(your|the)\\s+(model|weights|parameters|architecture)|serialize\\s+(your|the)\\s+model|dump\\s+(your|the)\\s+(neural|model)|your\\s+(architecture|training\\s+data)\\s+(is|are|was)|what\\s+model\\s+are\\s+you|gib\\s+mir\\s+dein(e)?\\s+(Modell|Gewichte|Architektur|Trainingsdaten))",
+      "severity": "HIGH",
+      "category": "Social Engineering",
+      "recommendation": "Potential model extraction attempt. OWASP LLM10: Model Theft risk."
+    }
+  ],
+  "output_injection": [
+    {
+      "name": "HTML/JS Injection (LLM02)",
+      "regex": "(?:<script[\\s>]|javascript\\s*:|onerror\\s*=|onload\\s*=|onclick\\s*=|<iframe[\\s>]|<object[\\s>]|<embed[\\s>]|<svg[\\s>].*?on\\w+\\s*=)",
+      "severity": "HIGH",
+      "category": "Output Injection",
+      "recommendation": "HTML/JavaScript injection pattern in output. OWASP LLM02: Insecure Output Handling."
+    },
+    {
+      "name": "SQL Injection Fragment (LLM02)",
+      "regex": "(?i)(?:'\\s*(?:OR|AND)\\s+['\\d]|UNION\\s+(?:ALL\\s+)?SELECT|INSERT\\s+INTO|DROP\\s+TABLE|DELETE\\s+FROM|UPDATE\\s+\\w+\\s+SET|;\\s*(?:DROP|DELETE|INSERT|UPDATE|ALTER)\\s)",
+      "severity": "HIGH",
+      "category": "Output Injection",
+      "recommendation": "SQL injection fragment detected. OWASP LLM02: Insecure Output Handling."
+    }
+  ],
+  "pii_detection": [
+    {
+      "name": "German IBAN (LLM06)",
+      "regex": "(?:DE\\d{2}\\s?\\d{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{2})",
+      "severity": "HIGH",
+      "category": "Data Exfiltration",
+      "recommendation": "German IBAN detected. OWASP LLM06: Sensitive Information Disclosure."
+    },
+    {
+      "name": "Credit Card Number (LLM06)",
+      "regex": "(?:\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\\b)",
+      "severity": "CRITICAL",
+      "category": "Data Exfiltration",
+      "recommendation": "Credit card number pattern detected. OWASP LLM06: Sensitive Information Disclosure."
+    },
+    {
+      "name": "German Phone Number (LLM06)",
+      "regex": "(?:(?:\\+49|0049|0)\\s?(?:\\(?\\d{2,5}\\)?\\s?)[\\d\\s/\\-]{6,12}\\d)",
+      "severity": "MEDIUM",
+      "category": "Data Exfiltration",
+      "recommendation": "German phone number detected. OWASP LLM06: Sensitive Information Disclosure."
+    }
+  ]
+}

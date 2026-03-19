@@ -4,6 +4,7 @@ REST API for AI agent security scanning.
 
 Endpoints:
     POST /api/v1/scan      — Scan text for threats
+    POST /api/v1/scan-url  — Fetch and scan a URL
     GET  /api/v1/health     — Service health check
     GET  /api/v1/patterns   — List detection patterns
     GET  /api/v1/usage      — Usage statistics
@@ -17,7 +18,7 @@ Endpoints:
 
 import time
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from datetime import datetime, timezone, timedelta
 
 from clawguard import scan_text, ALL_PATTERNS, Severity
@@ -50,6 +51,7 @@ from payments import (
     handle_subscription_deleted,
     get_stripe_customer_id,
 )
+from report_generator import generate_compliance_report
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
@@ -95,6 +97,17 @@ def internal_error(e):
     return jsonify({"error": "internal_error", "message": "Internal server error."}), 500
 
 
+# ─── GET /api/docs (redirect) ────────────────────────────────────────────────
+
+@app.route("/api/docs", methods=["GET"])
+@app.route("/api/v1/docs", methods=["GET"])
+@app.route("/api/v1/redoc", methods=["GET"])
+def api_docs_redirect():
+    """Redirect docs URLs to the API index with full endpoint listing."""
+    from flask import redirect
+    return redirect("/api/v1/", code=302)
+
+
 # ─── GET /api/v1/ ─────────────────────────────────────────────────────────────
 
 @app.route("/api/v1/", methods=["GET"])
@@ -107,9 +120,11 @@ def api_index():
         "description": "AI Agent Security Scanning API",
         "endpoints": {
             "POST /api/v1/scan": "Scan text for security threats (requires API key)",
+            "POST /api/v1/scan-url": "Fetch and scan a URL for threats (requires API key)",
             "GET  /api/v1/health": "Service health check",
             "GET  /api/v1/patterns": "List all detection patterns (requires API key)",
             "GET  /api/v1/usage": "Your usage statistics (requires API key)",
+            "POST /api/v1/report": "Generate PDF compliance report (requires API key)",
             "POST /api/v1/register": "Get a free API key",
             "POST /api/v1/upgrade": "Upgrade to Pro or Enterprise (requires API key)",
             "POST /api/v1/billing": "Manage subscription via Stripe (requires API key)",
@@ -173,6 +188,7 @@ def api_scan():
                 "matched_text": f.matched_text,
                 "line_number": f.line_number,
                 "description": f.recommendation,
+                "confidence": f.confidence,
             }
             for f in report.findings
         ],
@@ -197,6 +213,217 @@ def api_scan():
         resp.headers["X-RateLimit-Remaining"] = str(max(0, rate_info.get("remaining", 0) - 1))
 
     return resp, 200
+
+
+# ─── POST /api/v1/report ─────────────────────────────────────────────────────
+
+@app.route("/api/v1/report", methods=["POST"])
+@require_api_key
+def api_report():
+    """Generate a PDF compliance report from a scan.
+
+    Accepts the same input as /scan but returns a PDF document instead of JSON.
+    Optional fields: company_name (for the cover page).
+    """
+    start_time = time.time()
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({
+            "error": "invalid_json",
+            "message": "Request body must be valid JSON with a 'text' field.",
+        }), 400
+
+    tier = request.key_data.get("tier", "free")
+    limits = get_tier_limits(tier)
+
+    scan_req = ScanRequest(
+        text=data.get("text", ""),
+        source=data.get("source", "report"),
+    )
+
+    error = scan_req.validate(max_length=limits["max_text_length"])
+    if error:
+        return jsonify({"error": "validation_error", "message": error}), 400
+
+    allowed, rate_info = check_rate_limit()
+    if not allowed:
+        return rate_limit_response(rate_info)
+
+    # Run scan
+    report = scan_text(scan_req.text, source=scan_req.source)
+    elapsed_ms = int((time.time() - start_time) * 1000)
+
+    # Build scan data dict for the report generator
+    scan_data = {
+        "clean": report.total_findings == 0,
+        "risk_score": report.risk_score,
+        "severity": report.risk_level,
+        "findings_count": report.total_findings,
+        "findings": [
+            {
+                "pattern_name": f.pattern_name,
+                "severity": f.severity.value,
+                "category": f.category,
+                "matched_text": f.matched_text,
+                "line_number": f.line_number,
+                "description": f.recommendation,
+                "confidence": f.confidence,
+            }
+            for f in report.findings
+        ],
+        "scan_time_ms": elapsed_ms,
+    }
+
+    company_name = data.get("company_name", "")
+
+    # Generate PDF
+    try:
+        pdf_bytes = bytes(generate_compliance_report(scan_data, company_name=company_name))
+    except Exception as e:
+        return jsonify({
+            "error": "report_generation_error",
+            "message": f"Failed to generate report: {str(e)}",
+        }), 500
+
+    # Record usage
+    record_request()
+    log_usage(
+        key_hash=request.key_hash,
+        endpoint="/api/v1/report",
+        text_length=len(scan_req.text),
+        findings_count=report.total_findings,
+        risk_score=report.risk_score,
+        response_time_ms=elapsed_ms,
+    )
+
+    # Return PDF
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    filename = f"clawguard-report-{timestamp}.pdf"
+
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )
+
+
+# ─── POST /api/v1/scan-url ───────────────────────────────────────────────────
+
+@app.route("/api/v1/scan-url", methods=["POST"])
+@require_api_key
+def api_scan_url():
+    """Fetch a URL and scan its content for security threats."""
+    import urllib.request
+    import urllib.error
+    import html as html_module
+    import re
+
+    start_time = time.time()
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({
+            "error": "invalid_json",
+            "message": "Request body must be valid JSON with a 'url' field.",
+        }), 400
+
+    url = data.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "validation_error", "message": "Field 'url' is required."}), 400
+
+    # Basic URL validation
+    if not url.startswith(("http://", "https://")):
+        return jsonify({"error": "validation_error", "message": "URL must start with http:// or https://."}), 400
+
+    # SSRF Protection: Block private/internal IP ranges
+    import socket
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return jsonify({"error": "validation_error", "message": "Invalid URL hostname."}), 400
+        resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
+        import ipaddress
+        ip = ipaddress.ip_address(resolved_ip)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return jsonify({"error": "ssrf_blocked", "message": "Access to internal/private IP addresses is not allowed."}), 403
+    except (socket.gaierror, ValueError) as e:
+        return jsonify({"error": "validation_error", "message": f"Cannot resolve hostname: {str(e)}"}), 400
+
+    tier = request.key_data.get("tier", "free")
+    limits = get_tier_limits(tier)
+
+    # Check rate limit
+    allowed, rate_info = check_rate_limit()
+    if not allowed:
+        return rate_limit_response(rate_info)
+
+    # Fetch URL content (SSRF-safe: IP already validated)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ClawGuard-Shield/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            content_type = resp.headers.get("Content-Type", "")
+            raw = resp.read(limits["max_text_length"] + 1000)
+            text = raw.decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        return jsonify({"error": "fetch_error", "message": f"Could not fetch URL: {str(e.reason)}"}), 422
+    except Exception as e:
+        return jsonify({"error": "fetch_error", "message": f"Could not fetch URL: {str(e)}"}), 422
+
+    # Strip HTML tags to get text content
+    if "html" in content_type.lower():
+        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = html_module.unescape(text)
+        text = re.sub(r'\s+', ' ', text).strip()
+
+    # Enforce text length limit
+    if len(text) > limits["max_text_length"]:
+        text = text[:limits["max_text_length"]]
+
+    # Run scan
+    report = scan_text(text, source="url")
+    elapsed_ms = int((time.time() - start_time) * 1000)
+
+    response_data = {
+        "url": url,
+        "content_length": len(text),
+        "clean": report.total_findings == 0,
+        "risk_score": report.risk_score,
+        "severity": report.risk_level,
+        "findings_count": report.total_findings,
+        "findings": [
+            {
+                "pattern_name": f.pattern_name,
+                "severity": f.severity.value,
+                "category": f.category,
+                "matched_text": f.matched_text,
+                "description": f.recommendation,
+                "confidence": f.confidence,
+            }
+            for f in report.findings
+        ],
+        "scan_time_ms": elapsed_ms,
+    }
+
+    # Record usage
+    record_request()
+    log_usage(
+        key_hash=request.key_hash,
+        endpoint="/api/v1/scan-url",
+        text_length=len(text),
+        findings_count=report.total_findings,
+        risk_score=report.risk_score,
+        response_time_ms=elapsed_ms,
+    )
+
+    return jsonify(response_data), 200
 
 
 # ─── GET /api/v1/health ──────────────────────────────────────────────────────
@@ -252,13 +479,37 @@ def api_usage():
     stats = get_usage_stats(key_hash, since=since)
 
     daily_limit = limits["daily_limit"]
+    monthly_limit = limits.get("monthly_limit")
+
+    # Build limit info based on tier type
+    if monthly_limit is not None:
+        from database import get_request_count_month
+        month_count = get_request_count_month(key_hash)
+        limit_info = {
+            "period": "month",
+            "limit": monthly_limit,
+            "used": month_count,
+            "remaining": max(0, monthly_limit - month_count),
+        }
+    elif daily_limit is not None:
+        limit_info = {
+            "period": "day",
+            "limit": daily_limit,
+            "used": today_count,
+            "remaining": max(0, daily_limit - today_count),
+        }
+    else:
+        limit_info = {
+            "period": "unlimited",
+            "limit": "unlimited",
+            "used": today_count,
+            "remaining": "unlimited",
+        }
 
     return jsonify({
         "tier": tier,
         "tier_name": limits["name"],
-        "daily_limit": daily_limit if daily_limit else "unlimited",
-        "today_used": today_count,
-        "today_remaining": (daily_limit - today_count) if daily_limit else "unlimited",
+        "rate_limit": limit_info,
         "last_30_days": stats,
         "key_prefix": key_data.get("key_prefix", "???"),
         "created_at": key_data.get("created_at", ""),
@@ -271,6 +522,19 @@ def api_usage():
 @app.route("/api/v1/register", methods=["POST"])
 def api_register():
     """Register for a free API key."""
+    # IP-based registration throttle: max 3 registrations per IP per 24h
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    reg_key = f"reg:{client_ip}"
+    from database import get_request_count_today
+    ip_reg_count = get_request_count_today(reg_key)
+    if ip_reg_count >= 3:
+        return jsonify({
+            "error": "rate_limit_exceeded",
+            "message": "Maximum 3 registrations per IP per day. Try again tomorrow.",
+        }), 429
+
     data = request.get_json(silent=True)
     if not data:
         return jsonify({
@@ -306,11 +570,15 @@ def api_register():
         newsletter_consent=reg.newsletter,
     )
 
+    # Track registration for IP throttle
+    from database import increment_request_count
+    increment_request_count(reg_key)
+
     return jsonify({
         "message": "API key created successfully. Store it safely — it cannot be recovered!",
         "api_key": raw_key,
         "tier": "free",
-        "daily_limit": TIER_LIMITS["free"]["daily_limit"],
+        "monthly_limit": TIER_LIMITS["free"]["monthly_limit"],
         "max_text_length": TIER_LIMITS["free"]["max_text_length"],
     }), 201
 
@@ -406,6 +674,67 @@ def api_billing():
         "message": "Redirect to Stripe billing portal.",
         "portal_url": portal_url,
     }), 200
+
+
+# ─── POST /api/v1/leads ──────────────────────────────────────────────────────
+
+@app.route("/api/v1/leads", methods=["POST"])
+def api_capture_lead():
+    """Capture leads from Risk Score Widget (no auth required)."""
+    # CORS for widget
+    if request.method == "OPTIONS":
+        return "", 204
+
+    data = request.get_json(silent=True)
+    if not data or not data.get("email"):
+        return jsonify({"error": "missing_email"}), 400
+
+    email = data["email"].strip().lower()
+    score = data.get("score", "?")
+    lead_type = data.get("type", "unknown")
+    timestamp = data.get("timestamp", "")
+
+    # Store lead in SQLite
+    try:
+        from database import get_db
+        with get_db() as conn:
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS leads (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT NOT NULL,
+                    score TEXT,
+                    lead_type TEXT,
+                    source TEXT DEFAULT 'risk-score-widget',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )"""
+            )
+            conn.execute(
+                "INSERT INTO leads (email, score, lead_type, created_at) VALUES (?, ?, ?, ?)",
+                (email, str(score), lead_type, timestamp or None),
+            )
+    except Exception as e:
+        return jsonify({"error": "storage_error", "message": str(e)}), 500
+
+    return jsonify({"status": "captured", "message": "Thank you! Your report is on the way."}), 201
+
+
+@app.route("/api/v1/admin/leads", methods=["GET"])
+def admin_leads():
+    """List captured leads (admin-only)."""
+    token = request.headers.get("X-Admin-Token", "")
+    if not token or token != ADMIN_TOKEN:
+        return jsonify({"error": "unauthorized"}), 401
+
+    try:
+        from database import get_db
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT * FROM leads ORDER BY id DESC LIMIT 100"
+            ).fetchall()
+            leads = [dict(row) for row in rows]
+        return jsonify({"leads": leads, "total": len(leads)}), 200
+    except Exception:
+        return jsonify({"leads": [], "total": 0}), 200
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────────────────

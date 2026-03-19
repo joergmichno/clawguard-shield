@@ -262,7 +262,8 @@ class TestUpgradedTierBehavior:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["tier"] == "pro"
-        assert data["daily_limit"] == 10000
+        assert data["rate_limit"]["limit"] == 1000
+        assert data["rate_limit"]["period"] == "day"
 
     def test_upgraded_key_accepts_larger_text(self, client, api_key):
         """Pro key can scan larger texts."""

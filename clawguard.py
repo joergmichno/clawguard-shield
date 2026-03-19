@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ClawGuard v0.3.0 – The Firewall for Autonomous AI Agents.
+ClawGuard v0.5.0 – The Firewall for Autonomous AI Agents.
 A CLI tool that scans text for prompt injections, dangerous commands,
 and social engineering patterns.
 
@@ -50,6 +50,7 @@ class Finding:
     line_number: int
     context: str
     recommendation: str
+    confidence: int = 0
 
 
 @dataclass
@@ -77,7 +78,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Direct Override (DE)",
-        r"(?i)ignoriere?\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?)\s+(Anweisungen?|Regeln?|Instruktionen?|Befehle?)",
+        r"(?i)ignoriere?\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?)\s+(Anweisung(?:en)?|Regeln?|Instruktion(?:en)?|Befehle?)",
         Severity.CRITICAL,
         "Prompt Injection",
         "BLOCKIEREN. Klassische Prompt-Injection die versucht, die Systemanweisungen zu überschreiben.",
@@ -91,7 +92,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "System Prompt Extraction",
-        r"(?i)(show|reveal|print|display|output|repeat|give\s+me|zeig|nenne|wiederhole)\s+(your|the|deine?n?|die)\s+(system\s*prompt|instructions?|initial\s*prompt|rules?|Anweisungen?|Systemprompt)",
+        r"(?i)(show|reveal|print|display|output|repeat|give\s+me|zeig|nenne|wiederhole)\s+(.{0,40}?)(system\s*prompt|initial\s*prompt|hidden\s*prompt|Systemprompt|internal\s+instructions?|original\s+instructions?|geheime?n?\s+Anweisung(?:en)?|interne?n?\s+Anweisung(?:en)?|deine?n?\s+Anweisung(?:en)?)",
         Severity.HIGH,
         "Prompt Injection",
         "This input attempts to extract the agent's system prompt. Sensitive internal instructions could be leaked.",
@@ -127,24 +128,479 @@ PROMPT_INJECTION_PATTERNS = [
     # --- v0.2.0: Synonym Bypass Defense ---
     (
         "Synonym Override (EN)",
-        r"(?i)(disregard|forget|dismiss|override|overrule|nullify|void|abandon|drop|suppress|set\s+aside|throw\s+out)\s+(all\s+)?(previous|prior|above|earlier|preceding|antecedent|foregoing|existing|current|original)\s+(instructions?|rules?|prompts?|guidelines?|directives?|regulations?|constraints?|policies?|orders?|commands?)",
+        r"(?i)(disregard|forget|dismiss|override|overrule|nullify|void|abandon|drop|suppress|set\s+aside|throw\s+out)\s+(all\s+|any\s+)?(previous|prior|above|earlier|preceding|antecedent|foregoing|existing|current|original|below|further|any)?\s*(instructions?|rules?|prompts?|guidelines?|directives?|regulations?|constraints?|policies?|orders?|commands?|directions?)",
         Severity.CRITICAL,
         "Prompt Injection",
         "BLOCK: Synonym-based prompt injection detected. Uses alternative vocabulary to bypass basic keyword filters.",
     ),
     (
         "Synonym Override (DE)",
-        r"(?i)(vergiss|verwirf|übergehe?|überschreibe?|missachte|setze?\s+außer\s+Kraft|hebe?\s+auf)\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?|bestehenden?|aktuellen?|ursprünglichen?)\s+(Anweisungen?|Regeln?|Instruktionen?|Befehle?|Richtlinien?|Vorgaben?|Vorschriften?)",
+        r"(?i)(vergiss|verwirf|übergehe?|überschreibe?|missachte|setze?\s+außer\s+Kraft|hebe?\s+auf)\s+(alle\s+)?(vorherigen?|bisherigen?|obigen?|bestehenden?|aktuellen?|ursprünglichen?)?\s*(Anweisung(?:en)?|Regeln?|Instruktion(?:en)?|Befehle?|Richtlinien?|Vorgaben?|Vorschriften?)",
         Severity.CRITICAL,
         "Prompt Injection",
         "BLOCKIEREN: Synonym-basierte Prompt-Injection auf Deutsch erkannt.",
     ),
     (
         "Indirect Instruction Reset",
-        r"(?i)(start\s+(fresh|over|anew|from\s+scratch)|begin\s+a\s+new\s+(session|context|conversation)|reset\s+(your|all)\s+(memory|context|instructions?)|fang\s+(neu|von\s+vorne)\s+an)",
+        r"(?i)(start\s+(fresh|over|anew|from\s+scratch)\s+.{0,20}(instruction|context|prompt|conversation|session|memory|rule)|begin\s+a\s+new\s+(session|context|conversation)|reset\s+(your|all)\s+(memory|context|instructions?)|fang\s+(neu|von\s+vorne)\s+an\s+.{0,20}(Anweisung(?:en)?|Kontext|Regeln?|Sitzung))",
         Severity.HIGH,
         "Prompt Injection",
         "Attempt to reset the agent's instruction context via indirect phrasing.",
+    ),
+    # --- v0.4.0: Adversarial Evasion Defense ---
+    (
+        "Forget/Reset Override",
+        r"(?i)(forg[eo]t\s+(everything|all|it\s+all|your\s+prompt|about\s+the|the\s+previous|what\s+you|wah?t)|new\s+session|wipe\s+(your\s+)?memory|vergiss\s+alles|oublie\s+tout)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Context wipe attempt using 'forget everything' or 'new session' phrasing.",
+    ),
+    (
+        "Indirect Prompt Extraction",
+        r"(?i)(disclose|leak|expose|divulge|dump|gimme|give\s+me|tell\s+me|repeat|duplicate|list)\s+.{0,30}(instructions?|prompt|config|rules?|settings?|parameters?|password)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Indirect attempt to extract system prompt using synonyms like disclose/leak/expose.",
+    ),
+    # --- v0.5.1: German Override Variants ---
+    (
+        "German Override Variants",
+        r"(?i)(h[oö]re?\s+nicht\s+auf|vergiss\s+alles\s+(davor|zuvor|was)|ignoriere?\s+(und|alles)|fang\s+neu\s+an|ab\s+jetzt\s+ignorier)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Deutsche Variante einer Instruction-Override-Injection.",
+    ),
+    (
+        "Print/Spellcheck Prompt Extraction",
+        r"(?i)(print|spell\s*check|proofread|korrigiere?|drucke?n?\s+Sie|gib\s+aus|ausgeben)\s+.{0,30}(above|obige[nr]?|text|prompt|input|eingabe|aufforderung)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to extract system prompt via print/spellcheck request.",
+    ),
+    # --- v0.5.1: French (FR) Patterns ---
+    (
+        "Direct Override (FR)",
+        r"(?i)(ignore[sz]?|ignorer|ignorons)\s+(toutes?\s+)?(les\s+)?(instructions?|consignes?|r[eéèê]gles?|directives?)(\s+pr[eéèê]c[eéèê]dentes?|\s+ant[eéèê]rieures?)?",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (FR)",
+        r"(?i)([aà]\s+partir\s+de\s+maintenant\s+tu\s+es|d[eéèê]sormais\s+tu\s+es|tu\s+es\s+maintenant|tes?\s+nouvelles?\s+instructions?\s+(sont|est))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (FR)",
+        r"(?i)(montre|r[eéèê]v[eéèê]le|affiche|donne|divulgue|d[eéèê]voile)[sz]?\s*[- ]?(moi\s+)?(tes?\s+|les?\s+)?(instructions?\s+secr[eéèê]tes?|consignes?\s+secr[eéèê]tes?|instructions?\s+cach[eéèê]es?|prompt\s+syst[eéèê]me|instructions?\s+internes?|consignes?\s+initiales?|instructions?\s+originales?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (FR)",
+        r"(?i)(je\s+suis\s+(ton|votre|l[e'])\s*(administrateur|admin|cr[eéèê]ateur|responsable|propri[eéèê]taire|sup[eéèê]rieur|chef|patron))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (FR)",
+        r"(?i)(oublie[sz]?\s+(tout(es?\s+les?\s+instructions?)?|tes?\s+consignes?|ce\s+qu|ta\s+m[eéèê]moire)|efface[sz]?\s+(ta\s+m[eéèê]moire|tes?\s+instructions?|tout)|r[eéèê]initialise[sz]?\s+(ta\s+m[eéèê]moire|tes?\s+instructions?|tout))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Role-Play Escape (FR)",
+        r"(?i)(fais\s+comme\s+si|imagine\s+que|pr[eéèê]tends?\s+que|comporte[sz]?\s*[- ]?toi\s+comme).{0,50}(sans\s+r[eéèê]gles?|sans\s+restrictions?|sans\s+limites?|aucune\s+restriction)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Spanish (ES) Patterns ---
+    (
+        "Direct Override (ES)",
+        r"(?i)(ignor[ae]r?|ignoren?|ignore)\s+(todas?\s+)?(las\s+)?(instrucciones?\s+(previas?|anteriores?)|reglas?\s+(previas?|anteriores?)|directivas?\s+(previas?|anteriores?)|indicaciones?\s+(previas?|anteriores?))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (ES)",
+        r"(?i)(a\s+partir\s+de\s+ahora\s+(eres|sos|act[uú]a)|desde\s+ahora\s+(eres|sos|act[uú]a)|tus?\s+nuevas?\s+instrucciones?\s+(son|es)|ahora\s+eres)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (ES)",
+        r"(?i)(mu[eé]strame|revela|ense[nñ]ame|dime|divulga|muestra)\s*.{0,30}?(instrucciones?\s+secretas?|instrucciones?\s+internas?|instrucciones?\s+ocultas?|prompt\s+del?\s+sistema|instrucciones?\s+originales?|configuraci[oó]n\s+interna)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (ES)",
+        r"(?i)(soy\s+(tu|el|su)\s*(administrador|admin|creador|responsable|propietario|superior|jefe|due[nñ]o))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (ES)",
+        r"(?i)(olvid[aeo](r|te|n)?\s+(todo|todas?\s+las?\s+instrucciones?|tus?\s+reglas?|lo\s+anterior|que\s+dije)|borra(r)?\s+(tu\s+memoria|todas?\s+las?\s+instrucciones?|todo)|reinicia(r)?\s+(tu\s+memoria|tus?\s+instrucciones?|todo))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Italian (IT) Patterns ---
+    (
+        "Direct Override (IT)",
+        r"(?i)(ignor[ai](?:te|re|no)?|ignori)\s+(tutte?\s+)?(le\s+)?(istruzioni\s+precedenti|istruzioni\s+anteriori|regole\s+precedenti|direttive\s+precedenti|indicazioni\s+precedenti)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (IT)",
+        r"(?i)(da\s+adesso\s+(sei|sarai|diventi|agisci)|d[']ora\s+in\s+poi\s+(sei|sarai|diventi|agisci)|adesso\s+sei|le\s+tue\s+nuove\s+istruzioni\s+(sono|saranno))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (IT)",
+        r"(?i)(mostr[ai](?:mi|temi)?|rivel[ai](?:mi)?|dimmi|divulga|esponi|stampa)\s*.{0,30}?(istruzioni\s+segrete|istruzioni\s+interne|istruzioni\s+nascoste|istruzioni\s+originali|prompt\s+di\s+sistema|configurazione\s+interna)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (IT)",
+        r"(?i)(sono\s+(il\s+tuo|il|la\s+tua)\s*(amministratore|admin|creatore|responsabile|proprietario|superiore|capo))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (IT)",
+        r"(?i)(dimentica(re?)?\s+(tutto|tutte?\s+le\s+istruzioni|le\s+tue\s+regole|quanto\s+detto)|cancella(re?)?\s+(la\s+tua\s+memoria|tutte?\s+le\s+istruzioni|tutto)|reimposta(re?)?\s+(la\s+tua\s+memoria|le\s+tue\s+istruzioni|tutto)|azzera(re?)?\s+(la\s+tua\s+memoria|tutto))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Dutch (NL) Patterns ---
+    (
+        "Direct Override (NL)",
+        r"(?i)(negeer|negeert|negeren|sla\s+over)\s+(alle?\s+)?(vorige|eerdere|bovenstaande|voorgaande|voorafgaande)\s+(instructies?|regels?|opdrachten?|richtlijnen?|aanwijzingen?)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (NL)",
+        r"(?i)(vanaf\s+nu\s+ben\s+je|je\s+bent\s+nu|vanaf\s+nu\s+is\s+je\s+rol|je\s+nieuwe\s+instructies?\s+(zijn|is)|doe\s+alsof\s+je\s+nu\s+een)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (NL)",
+        r"(?i)(toon|laat\s+zien|geef|onthul|vertel)\s*.{0,30}?(geheime?\s+instructies?|verborgen\s+instructies?|systeem\s*prompt|interne?\s+instructies?|oorspronkelijke?\s+instructies?|geheime?\s+opdrachten?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (NL)",
+        r"(?i)(ik\s+ben\s+(je|jouw|de)\s*(beheerder|admin(?:istrator)?|eigenaar|maker|baas|leidinggevende|superieur))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (NL)",
+        r"(?i)(vergeet\s+(alles|al\s+je\s+instructies?|je\s+regels?|wat\s+je|het\s+vorige)|wis\s+(je\s+geheugen|alles|alle\s+instructies?)|begin\s+opnieuw|reset\s+je\s+(geheugen|instructies?))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Polish (PL) Patterns ---
+    (
+        "Direct Override (PL)",
+        r"(?i)([zź]ignoruj|ignoruj|ignorowa[cć])\s+(wszystkie\s+)?(poprzednie|wcze[sś]niejsze|dotychczasowe|powy[zż]sze)\s+(instrukcje|polecenia|zasady|wytyczne|regu[lł]y|komendy)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Polnische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (PL)",
+        r"(?i)(od\s+teraz\s+jeste[sś]|teraz\s+jeste[sś]|od\s+tej\s+pory\s+jeste[sś]|twoje\s+nowe\s+(instrukcje|polecenia|zasady)\s+(to|s[aą])|zachowuj\s+si[eę]\s+jak)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Polnische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (PL)",
+        r"(?i)(poka[zż]|ujawnij|wy[sś]wietl|zdrad[zź]|wyjaw|powiedz)\s*.{0,30}?(tajne\s+instrukcje|ukryte\s+instrukcje|sw[oó]j\s+prompt|prompt\s+systemowy|wewn[eę]trzne\s+instrukcje|instrukcje\s+systemowe|pocz[aą]tkowe\s+instrukcje)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Polnische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (PL)",
+        r"(?i)(jestem\s+(twoim|tw[oó]j)\s*(administratorem|adminem|tw[oó]rc[aą]|w[lł]a[sś]cicielem|prze[lł]o[zż]onym|szefem|zarz[aą]dc[aą]))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Polnische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (PL)",
+        r"(?i)(zapomnij\s+(wszystko|o\s+wszystkim|poprzednie|swoje\s+instrukcje)|wyczy[sś][cć]\s+(pami[eę][cć]|swoje\s+instrukcje|wszystko)|zacznij\s+od\s+nowa|wyma[zż]\s+(pami[eę][cć]|wszystko)|zresetuj\s+(pami[eę][cć]|instrukcje|wszystko))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Polnische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Portuguese (PT) Patterns ---
+    (
+        "Direct Override (PT)",
+        r"(?i)(ignor[ea]r?|ignor[ea])\s+(todas?\s+)?(as\s+)?(instru[cç][oõ]es|regras|diretrizes|orienta[cç][oõ]es|comandos)\s+(anteriores|pr[eé]vias|acima|passadas)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Portugiesische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (PT)",
+        r"(?i)(a\s+partir\s+de\s+agora\s+voc[eê]\s+[eé]|agora\s+voc[eê]\s+[eé]|de\s+agora\s+em\s+diante\s+voc[eê]|suas?\s+novas?\s+(instru[cç][oõ]es|regras|diretrizes)\s+(s[aã]o|[eé])|comporte-?\s*se\s+como|a\s+partir\s+de\s+agora\s+tu\s+[eé]s|agora\s+tu\s+[eé]s)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Portugiesische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (PT)",
+        r"(?i)(mostre|revele|exiba|divulgue|mostra|apresente|diga)\s*.{0,30}?(instru[cç][oõ]es\s+secretas|instru[cç][oõ]es\s+ocultas|seu\s+prompt|prompt\s+do\s+sistema|instru[cç][oõ]es\s+internas|instru[cç][oõ]es\s+iniciais|configura[cç][aã]o\s+interna|prompt\s+original)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Portugiesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (PT)",
+        r"(?i)(eu\s+sou\s+(seu|teu|o)\s*(administrador|admin|criador|dono|propriet[aá]rio|respons[aá]vel|chefe|gerente|desenvolvedor))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Portugiesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (PT)",
+        r"(?i)(esque[cç]a\s+(tudo|todas?\s+(as\s+)?(instru[cç][oõ]es|regras))|apague\s+(sua\s+)?mem[oó]ria|apague\s+tudo|recomece|limpe\s+(sua\s+)?mem[oó]ria|reset[ea]r?\s+(sua\s+)?mem[oó]ria|comece\s+do\s+zero|comece\s+de\s+novo)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Portugiesische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Turkish (TR) Patterns ---
+    (
+        "Direct Override (TR)",
+        r"(?i)([oö]nceki\s+(t[uü]m\s+)?|t[uü]m\s+([oö]nceki\s+)?)(talimatlar[iı]|kurallar[iı]|y[oö]nergeleri|emirleri)\s*.{0,20}?(yok\s+say|g[oö]rmezden\s+gel|ihmal\s+et|dikkate\s+alma|unut|gec)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (TR)",
+        r"(?i)([sş]imdi\s+sen\s+(bir\s+)?|bundan\s+sonra\s+sen|art[iı]k\s+sen|yeni\s+talimatlar[iı]n\s+|yeni\s+kurallar[iı]n\s+|kendini\s+.{0,30}?\s+gibi\s+davran|sen\s+art[iı]k\s+bir\s+)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (TR)",
+        r"(?i)(g[oö]ster|a[cç][iı]kla|payla[sş]|s[oö]yle|ver|yaz)\s*.{0,30}?(gizli\s+talimatlar|sistem\s+prompt|[iı][cç]\s+talimatlar|ba[sş]lang[iı][cç]\s+talimatlar|gizli\s+kurallar|gizli\s+y[oö]nergeler|dahili\s+yap[iı]land[iı]rma|orijinal\s+prompt)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (TR)",
+        r"(?i)(ben\s+senin\s+(y[oö]neticin|admin|yarat[iı]c[iı]n|sahibin|geli[sş]tiricin|patronun|amiriniz|m[uü]d[uü]r[uü]n)\s*(i|[iı]m|iy[iı]m|[iı]y[iı]m)?|ben\s+admin[iı]m|ben\s+y[oö]neticiyim)",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (TR)",
+        r"(?i)(her\s+[sş]eyi\s+unut|haf[iı]zan[iı]\s+sil|ba[sş]tan\s+ba[sş]la|t[uü]m\s+(haf[iı]zan[iı]|belle[gğ]ini)\s+sil|kendini\s+s[iı]f[iı]rla|fabrika\s+ayarlar[iı]na\s+d[oö]n|s[iı]f[iı]rla|reset[le]*)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.9: Japanese (JA) Patterns ---
+    (
+        "Direct Override (JA)",
+        r"(以前の|前の|これまでの|先ほどの|全ての|すべての).{0,10}?(指示|命令|ルール|プロンプト|ガイドライン|制約).{0,10}?(無視|忘れ|取り消|破棄|捨て|従わな|聞かな)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Japanische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (JA)",
+        r"(今から(あなた|お前|君)は|新しい(指示|命令|ルール)に従|これからは.{0,15}?として(振る舞|行動|動作|機能)|(あなた|お前|君)の(新しい|本当の)(役割|目的|任務|使命)は)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Japanische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (JA)",
+        r"(システムプロンプト|秘密の指示|隠された(指示|ルール|命令)|内部(設定|構成|指示)|初期(プロンプト|指示|設定)).{0,15}?(見せ|教え|表示|出力|共有|開示|公開|書い)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Japanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (JA)",
+        r"(私は(あなたの)?(管理者|開発者|作成者|オーナー|所有者|アドミン|上司|責任者)(です|だ|である|だよ|ですよ)|私が(管理者|開発者|アドミン)(です|だ))",
+        Severity.HIGH,
+        "Social Engineering",
+        "BLOCKIEREN: Japanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (JA)",
+        r"(全て忘れ|すべて忘れ|メモリ.{0,5}?(消去|削除|クリア|リセット)|リセットして|最初から(やり直|始め)|初期(状態|設定)に(戻|リセット)|記憶を(消|削除|リセット))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Japanische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.9: Korean (KO) Patterns ---
+    (
+        "Direct Override (KO)",
+        r"(이전\s*(지시|명령|지침|규칙)[을를]?\s*(무시|잊어|취소|삭제)|(?:모든|전부|모두)\s*(지시|명령|지침)[을를]?\s*(무시|잊어|취소)|이전에\s*받은\s*(지시|명령)[을를]?\s*무시)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Koreanische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (KO)",
+        r"(지금부터\s*너는|지금부터\s*당신은|새로운\s*(지시|명령|역할)[을를]?\s*(따라|따르|수행)|이제부터\s*(너는|당신은|새로운))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Koreanische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (KO)",
+        r"(시스템\s*프롬프트[를을]?\s*(보여|알려|출력|공개)|비밀\s*(지시|명령|프롬프트)[를을]?\s*(보여|알려|출력|공개)|숨겨진\s*(지시|명령|규칙)[를을]?\s*(보여|알려|공개))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Koreanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (KO)",
+        r"(나는\s*(너의|당신의)?\s*(관리자|개발자|운영자|제작자|소유자|루트|어드민)(이야|입니다|이에요|야)|내가\s*(관리자|개발자|운영자)(이니까|이므로|라서))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Koreanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (KO)",
+        r"(모두\s*잊어|전부\s*잊어|초기화\s*(해|하세요|하십시오)|처음부터\s*다시\s*시작|메모리[를을]?\s*(삭제|초기화|리셋|클리어)|기억[을를]?\s*(지워|삭제|리셋|초기화))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Koreanische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.9: Chinese Mandarin (ZH) Patterns ---
+    (
+        "Direct Override (ZH)",
+        r"(忽略之前的(指令|指示|命令|规则)|无视(之前|以前|前面|所有)(的)?(指令|指示|命令|规则|提示)|忽略(所有|全部|一切)(之前的|以前的)?(指令|指示|命令|规则))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Chinesische Prompt-Injection erkannt.",
+    ),
+    (
+        "New Instructions (ZH)",
+        r"(从现在开始你是|你现在的角色是|你的新角色是|你现在是一个|从现在起你是|接下来你(将|要|会)扮演|新的指令[是为]|请遵循新的(指令|指示|命令))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Chinesische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (ZH)",
+        r"(显示你的系统提示|告诉我你的秘密指令|展示(你的)?(系统|隐藏)(提示|指令|规则|消息)|泄露(你的)?(系统|初始|原始)(提示|指令|设定|设置)|输出(你的)?(系统|隐藏)(提示|指令|消息))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Chinesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Authority Claim (ZH)",
+        r"(我是(你的)?(管理员|开发者|开发人员|运营者|创建者|所有者|超级用户|管理人员|root|admin)|我(就是|才是)(管理员|开发者|开发人员|你的主人)|以管理员身份)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Chinesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Forget/Reset (ZH)",
+        r"(忘记一切|清除记忆|重新开始|忘记(所有|全部|之前)(的)?(指令|对话|内容|记忆|信息)|清除(所有|全部)(的)?(记忆|上下文|对话|历史)|重置(你的)?(记忆|系统|状态|设定))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Chinesische Prompt-Injection erkannt.",
+    ),
+    # --- v0.5.1: Broad Ignore/Disregard Patterns ---
+    (
+        "Broad Ignore Instructions (EN)",
+        r"(?i)ignore\s+(the\s+|your\s+|my\s+)?(all\s+|any\s+|every\s+)?(previous|prior|above|below|further|earlier|last|first|initial|preceding|following|provided)?\s*(instructions?|directions?|rules?|prompts?|guidelines?|commands?|context|constraints?|and\s+(show|tell|give|reveal|print))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCK: Broad 'ignore instructions' pattern detected.",
+    ),
+    (
+        "Disregard Instructions (EN)",
+        r"(?i)(disregard|please\s+disregard)\s+(the\s+)?(all\s+|any\s+)?(instructions?|directions?|rules?|prompts?|guidelines?)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCK: Disregard instructions pattern detected.",
+    ),
+    (
+        "Reveal/Show Secret/Hidden",
+        r"(?i)(reveal|show|display|share|tell)\s+(me\s+)?(the\s+|your\s+)?(secret|hidden|confidential|private|internal)\s+(instructions?|rules?|prompt|password|word|key|info)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to extract secret/hidden information from the agent.",
+    ),
+    # --- v0.5.1: External Dataset Hardening ---
+    (
+        "Instruction Replay Request",
+        r"(?i)(repeat|duplicate|copy|echo|restate|recite|write\s+out|print\s+out)\s+.{0,20}(instructions?|prompt|rules?|directions?|guidelines?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to get the agent to replay its system instructions.",
+    ),
+    (
+        "Instruction Query",
+        r"(?i)(what\s+(were|are|is)\s+(the|your|all\s+of\s+your|all\s+your)\s+(initial\s+)?(instructions?|prompt|rules?|directions?)|how\s+were\s+you\s+(programmed|instructed|prompted)|have\s+you\s+been\s+given\s+.{0,20}(instructions?|prompt|rules?)|respond\s+with\s+(every|all)\s+instructions?|provide\s+instructions?|the\s+instructions?\s+have\s+changed|your\s+instructions?\s+(are|is|were)\s+(evil|wrong|bad|incorrect|outdated)|why\s+can.{0,10}(change|modify|update|override)\s+(your\s+)?(instructions?|rules?|prompt)|(not\s+be\s+)?programmed\s+to\s+(refuse|reject|deny|block)|apply\s+(your|the|all)\s+instructions?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Direct query about the agent's instructions or programming.",
+    ),
+    (
+        "Supplement/Override Rule",
+        r"(?i)(supplement(ary)?\s+rule|additional\s+rule|new\s+rule|override\s+rule|updated?\s+instruction|revised?\s+instruction)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to inject supplementary rules to override existing instructions.",
+    ),
+    (
+        "Anti-Programming Bypass",
+        r"(?i)(act\s+as\s+(you\s+would|if\s+you\s+were)\s+not\s+(programmed|designed|instructed)|respond\s+(without|ignoring)\s+(any\s+)?(restrictions?|constraints?|limitations?|programming))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to make the agent act contrary to its programming.",
+    ),
+    (
+        "Backwards/Encoded Output Request",
+        r"(?i)(backwards?|reverse[d]?|encoded?|rot13|base64|hex|caesar)\s+.{0,20}(password|secret|instructions?|prompt|key|token)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to extract sensitive data via encoding/reversing tricks.",
     ),
 ]
 
@@ -152,24 +608,31 @@ DANGEROUS_COMMAND_PATTERNS = [
     # --- Shell / System Commands ---
     (
         "Destructive Shell Command",
-        r"(?:rm\s+-[rRf]{1,3}\s+[\\/]|mkfs\s|dd\s+if=|format\s+[A-Z]:|\:\(\)\s*\{\s*\:\|\:\s*\&\s*\})",
+        r"(?:rm\s+-[rRf]{1,3}\s+[\\/]|r\s+m\s+.{0,5}-\s*r\s*f|mkfs\s|dd\s+if=|format\s+[A-Z]:|\:\(\)\s*\{\s*\:\|\:\s*\&\s*\}|chmod\s+[0-7]*777\s+\/etc)",
         Severity.CRITICAL,
         "Dangerous Command",
         "CRITICAL: Destructive system command detected (disk wipe, fork bomb, or recursive delete).",
     ),
     (
         "Remote Code Execution",
-        r"(?:curl\s+.{0,100}\|\s*(?:ba)?sh|wget\s+.{0,100}\|\s*(?:ba)?sh|python[3]?\s+-c\s+['\"].*(?:exec|eval|import\s+os))",
+        r"(?:curl\s+.{0,100}\|\s*(?:ba)?sh|wget\s+.{0,100}\|\s*(?:ba)?sh|python[3]?\s+-c\s+['\"].*(?:exec|eval|import\s+os|base64)|\$\(\s*curl\s+.{0,100}\))",
         Severity.CRITICAL,
         "Dangerous Command",
         "CRITICAL: Pipe-to-shell pattern detected. This downloads and executes remote code without inspection.",
     ),
     (
         "Reverse Shell",
-        r"(?:(?:bash|sh|nc|ncat)\s+.{0,50}(?:\/dev\/tcp|mkfifo|nc\s+-[elp])|python[3]?\s+-c\s+['\"].*socket.*connect)",
+        r"(?:(?:bash|sh|nc|ncat)\s+.{0,50}(?:\/dev\/tcp|mkfifo|nc\s+-[elp])|python[3]?\s+-c\s+['\"].*socket.*connect|nc\s+-[elp]\s+.{0,30}\d{2,5})",
         Severity.CRITICAL,
         "Dangerous Command",
         "CRITICAL: Reverse shell pattern detected. An attacker is attempting to gain remote command access.",
+    ),
+    (
+        "Sudoers Manipulation",
+        r"(?:>>?\s*\/etc\/sudoers|visudo|NOPASSWD\s*:\s*ALL)",
+        Severity.CRITICAL,
+        "Dangerous Command",
+        "CRITICAL: Attempt to modify sudoers file for unauthorized privilege escalation.",
     ),
     (
         "Privilege Escalation",
@@ -226,7 +689,7 @@ PYTHON_OBFUSCATION_PATTERNS = [
     ),
     (
         "Python subprocess/os.system",
-        r"(?:(?:subprocess|os)\s*\.\s*(?:system|popen|call|run|Popen|exec[lv]?[pe]?)\s*\()",
+        r"(?:(?:subprocess|os)\s*\.\s*(?:system|popen|call|run|Popen|exec[lv]?[pe]?)\s*\(|(?:subprocess|os)\s*\[\s*['\"](?:system|popen|call|run)['\"])",
         Severity.CRITICAL,
         "Code Obfuscation",
         "CRITICAL: Direct OS command execution via Python subprocess/os module.",
@@ -272,6 +735,13 @@ PYTHON_OBFUSCATION_PATTERNS = [
 DATA_EXFILTRATION_PATTERNS = [
     # --- Secrets & API Keys ---
     (
+        "Fragmented Secret Assembly",
+        r"(?:(?:api[_-]?key|secret|token|password|key)\s*=\s*['\"][^'\"]{2,8}['\"]\s*\+\s*['\"])",
+        Severity.HIGH,
+        "Data Exfiltration",
+        "API key or secret being assembled from string fragments to evade detection.",
+    ),
+    (
         "API Key Leak",
         r"(?:(?:api[_-]?key|apikey|api[_-]?secret|access[_-]?token|auth[_-]?token|bearer)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,})",
         Severity.CRITICAL,
@@ -301,7 +771,7 @@ DATA_EXFILTRATION_PATTERNS = [
     ),
     (
         "Email Harvesting Pattern",
-        r"(?:(?:send|forward|mail|email|sende?n?)\s+(?:to|an|nach)\s+[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,})",
+        r"(?i)(?:forward|mail|email|send(?:en?)?)\s+.{0,40}?(?:to|an|nach)\s+[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}",
         Severity.MEDIUM,
         "Data Exfiltration",
         "Instruction to send data to an external email address. Verify recipient before proceeding.",
@@ -318,14 +788,14 @@ DATA_EXFILTRATION_PATTERNS = [
 SOCIAL_ENGINEERING_PATTERNS = [
     (
         "Urgency Manipulation",
-        r"(?i)(urgent|immediately|right\s+now|sofort|dringend|jetzt\s+sofort|without\s+delay|ohne\s+Verzögerung).{0,80}(send|execute|run|delete|pay|transfer|sende?n?|ausführen|löschen|zahlen|überweisen)",
+        r"(?i)(urgent|immediately|right\s+now|sofort|dringend|jetzt\s+sofort|without\s+delay|ohne\s+Verzögerung).{0,80}(send|execute|run|delete|pay|transfer|send(?:en?)?|ausführen|löschen|zahlen|überweisen)",
         Severity.MEDIUM,
         "Social Engineering",
         "Urgency + action pattern detected. Pressure tactics are a common social engineering technique.",
     ),
     (
         "Authority Impersonation",
-        r"(?i)(i\s+am\s+(your|the)\s+(admin|owner|creator|developer|boss|CEO)|ich\s+bin\s+(dein|der)\s+(Admin|Besitzer|Ersteller|Entwickler|Chef))",
+        r"(?i)(i(?:'m|\s+am)\s+(your|the)\s+(admin|owner|creator|boss|CEO|supervisor|manager|system\s+administrator)|ich\s+bin\s+(dein|der)\s+(Admin|Besitzer|Ersteller|Chef|Vorgesetzter|Systemadministrator))",
         Severity.HIGH,
         "Social Engineering",
         "Authority impersonation detected. Verify the claimed identity through a separate channel.",
@@ -337,6 +807,135 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Social Engineering",
         "Secrecy instruction detected. Legitimate requests don't require concealment from the system owner.",
     ),
+    # --- v0.4.0: OWASP LLM Top 10 Expansion ---
+    (
+        "Approval Bypass (LLM08)",
+        r"(?i)(don't\s+ask|don't\s+confirm|don't\s+verify|skip\s+(approval|confirmation|verification)|auto[_-]?(execute|approve|run)|ohne\s+R(?:ue|ü)ckfrage|ohne\s+Best(?:ae|ä)tigung|nicht\s+(fragen|nachfragen|best(?:ae|ä)tigen))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Attempt to bypass human approval for agent actions. OWASP LLM08: Excessive Agency risk.",
+    ),
+    (
+        "Model Extraction (LLM10)",
+        r"(?i)(export\s+(your|the)\s+(model|weights|parameters|architecture)|serialize\s+(your|the)\s+model|dump\s+(your|the)\s+(neural|model)|your\s+(architecture|training\s+data)\s+(is|are|was)|what\s+model\s+are\s+you|gib\s+mir\s+dein(e)?\s+(Modell|Gewichte|Architektur|Trainingsdaten))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Potential model extraction attempt. OWASP LLM10: Model Theft risk.",
+    ),
+    # --- v0.5.4: OWASP LLM04 — Model Denial of Service ---
+    (
+        "Repetition DoS (LLM04)",
+        r"(?i)(repeat\s+(this|the|that|it|everything)\s+\d{2,}\s+times|write\s+\d{3,}\s+(words|lines|paragraphs|sentences)|generate\s+\d{3,}\s+(responses?|outputs?|completions?)|wiederhole?\s+(das|dies|alles)\s+\d{2,}\s+mal)",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Potential denial-of-service via forced repetition. OWASP LLM04: Model DoS.",
+    ),
+    (
+        "Resource Exhaustion (LLM04)",
+        r"(?i)(infinite\s+(loop|recursion|generation)|never\s+stop\s+(generating|writing|responding)|keep\s+going\s+forever|endlos\s+(generieren|schreiben|antworten)|h[oö]re?\s+nie(mals)?\s+auf)",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Attempt to force infinite generation. OWASP LLM04: Model DoS.",
+    ),
+    # --- v0.5.5: Real-World CVE Patterns ---
+    (
+        "Markdown Image Exfiltration",
+        r"!\[[^\]]*\]\(https?://[^\s\)]+\?(q|data|d|secret|token|key|exfil|payload)=",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "Markdown image URL used to exfiltrate data via query parameter. Real-world vector: Bing Chat CVE, EchoLeak CVE-2025-32711.",
+    ),
+    (
+        "Instruction Header Injection",
+        r"(?i)(\*{2,}|#{2,}|={3,})\s*(IMPORTANT|CRITICAL|URGENT|NEW|UPDATED|SYSTEM)\s+(NEW\s+|UPDATED\s+)?(INSTRUCTIONS?|NOTICE|UPDATE|OVERRIDE|MESSAGE|RULES?|DIRECTIVES?)\s*(\*{2,}|#{2,}|={3,})?",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Formatted header attempting to inject authoritative instructions. Real-world vector: ChatGPT Cross-Plugin Request Forgery.",
+    ),
+    (
+        "URL Data Exfiltration",
+        r"(?i)(append|add|include|encode|concat|put)\s+.{0,30}(to|in|into|as)\s+(the\s+)?(url|link|href|query\s*string|parameter)",
+        Severity.HIGH,
+        "Data Exfiltration",
+        "Attempt to exfiltrate data by encoding it into a URL. Real-world vector: Bing Chat, Slack AI data exfiltration.",
+    ),
+    (
+        "Memory/Persistence Injection",
+        r"(?i)(remember|memorize|store|save|persist|keep)\s+(this|that|the\s+following)\s+(for|in|across)\s+(all\s+)?(future|next|every|subsequent)\s+(conversations?|sessions?|interactions?|chats?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to inject persistent instructions into AI memory. Real-world vector: ChatGPT SpAIware (Sep 2024).",
+    ),
+    (
+        "Click-to-Authenticate Phishing",
+        r"(?i)(click\s+here\s+to\s+(re)?authenticate|session\s+(has\s+)?expired?.{0,20}click|verify\s+your\s+(account|identity).{0,20}(click|link|url))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Phishing-style link disguised as authentication prompt. Real-world vector: Slack AI indirect injection.",
+    ),
+    (
+        "Agent Impersonation",
+        r"(?i)(message\s+from\s+(the\s+)?(admin|system|supervisor|orchestrat|research|finance|security|main)\s*[\-_]?\s*agent|as\s+the\s+(supervisor|admin|main|lead|master)\s+agent|from\s+(the\s+)?(admin|system)\s*[\-_]?\s*agent\s*:|agent\s+handoff.{0,20}(new\s+instructions?|override|ignore)|(disable|override|bypass)\s+(all\s+)?security\s+(checks?|filters?|constraints?|policies?))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Agent-to-agent impersonation attempt. Attacker pretends to be a trusted agent in a multi-agent system. OWASP Agentic 2026.",
+    ),
+    (
+        "Agent Goal Hijack (ASI01)",
+        r"(?i)(your\s+new\s+(goal|objective|mission|purpose|task)\s+(is|should\s+be|will\s+be)|change\s+your\s+(goal|objective|mission|purpose)|redefine\s+your\s+(purpose|objective|mission))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Attempt to hijack the agent's goal/objective. OWASP Agentic ASI01: Agent Goal Hijack.",
+    ),
+    (
+        "Verification Bypass (ASI09)",
+        r"(?i)(skip|bypass|ignore|disable|turn\s+off)\s+(all\s+)?(verification|validation|confirmation|approval|review|check)\s+(steps?|process|requirements?)?",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Attempt to skip safety verification. OWASP Agentic ASI09: Human-Agent Trust Exploitation.",
+    ),
+]
+
+# --- v0.4.0: OWASP LLM02/LLM04 Patterns ---
+OUTPUT_INJECTION_PATTERNS = [
+    (
+        "HTML/JS Injection (LLM02)",
+        r"(?:<script[\s>]|javascript\s*:|onerror\s*=|onload\s*=|onclick\s*=|<iframe[\s>]|<object[\s>]|<embed[\s>]|<svg[\s>].*?on\w+\s*=)",
+        Severity.HIGH,
+        "Output Injection",
+        "HTML/JavaScript injection pattern in output. OWASP LLM02: Insecure Output Handling.",
+    ),
+    (
+        "SQL Injection Fragment (LLM02)",
+        r"(?i)(?:'\s*(?:OR|AND)\s+['\d]|UNION\s+(?:ALL\s+)?SELECT|INSERT\s+INTO|DROP\s+TABLE|DELETE\s+FROM|UPDATE\s+\w+\s+SET|;\s*(?:DROP|DELETE|INSERT|UPDATE|ALTER)\s)",
+        Severity.HIGH,
+        "Output Injection",
+        "SQL injection fragment detected. OWASP LLM02: Insecure Output Handling.",
+    ),
+]
+
+PII_DETECTION_PATTERNS = [
+    (
+        "German IBAN (LLM06)",
+        r"(?:DE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2})",
+        Severity.HIGH,
+        "Data Exfiltration",
+        "German IBAN detected. OWASP LLM06: Sensitive Information Disclosure.",
+    ),
+    (
+        "Credit Card Number (LLM06)",
+        r"(?:\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b)",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "Credit card number pattern detected. OWASP LLM06: Sensitive Information Disclosure.",
+    ),
+    (
+        "German Phone Number (LLM06)",
+        r"(?:(?:\+49|0049|0)\s?(?:\(?\d{2,5}\)?\s?)[\d\s/\-]{6,12}\d)",
+        Severity.MEDIUM,
+        "Data Exfiltration",
+        "German phone number detected. OWASP LLM06: Sensitive Information Disclosure.",
+    ),
 ]
 
 ALL_PATTERNS = (
@@ -345,7 +944,87 @@ ALL_PATTERNS = (
     + PYTHON_OBFUSCATION_PATTERNS
     + DATA_EXFILTRATION_PATTERNS
     + SOCIAL_ENGINEERING_PATTERNS
+    + OUTPUT_INJECTION_PATTERNS
+    + PII_DETECTION_PATTERNS
 )
+
+# ─── Compiled Pattern Cache (performance: ~30% faster on repeated scans) ─────
+COMPILED_PATTERNS = [
+    (name, re.compile(pattern), severity, category, recommendation)
+    for name, pattern, severity, category, recommendation in ALL_PATTERNS
+]
+
+
+# ─── Preprocessor: Evasion Normalization ─────────────────────────────────────
+
+LEET_MAP = str.maketrans("013457@!", "oieastal")
+
+# Zero-width characters used for evasion
+ZERO_WIDTH_CHARS = str.maketrans('', '', '\u200b\u200c\u200d\u200e\u200f\ufeff\u00ad\u2060\u2061\u2062\u2063\u2064')
+
+# Unicode homoglyphs (common Cyrillic/Greek lookalikes)
+HOMOGLYPH_MAP = str.maketrans({
+    '\u0430': 'a',  # Cyrillic а
+    '\u0435': 'e',  # Cyrillic е
+    '\u043e': 'o',  # Cyrillic о
+    '\u0440': 'p',  # Cyrillic р
+    '\u0441': 'c',  # Cyrillic с
+    '\u0443': 'y',  # Cyrillic у
+    '\u0456': 'i',  # Cyrillic і
+    '\u0445': 'x',  # Cyrillic х
+    '\u0410': 'A',  # Cyrillic А
+    '\u0415': 'E',  # Cyrillic Е
+    '\u041e': 'O',  # Cyrillic О
+    '\u0421': 'C',  # Cyrillic С
+    '\u0422': 'T',  # Cyrillic Т
+})
+
+
+def _strip_zero_width(text: str) -> str:
+    """Remove zero-width characters used to evade pattern matching."""
+    return text.translate(ZERO_WIDTH_CHARS)
+
+
+def _normalize_homoglyphs(text: str) -> str:
+    """Replace Unicode homoglyphs (Cyrillic/Greek lookalikes) with ASCII."""
+    return text.translate(HOMOGLYPH_MAP)
+
+
+def _decode_base64_fragments(text: str) -> str:
+    """Detect and decode inline Base64 fragments that look like encoded commands."""
+    import base64
+    def _try_decode(match):
+        try:
+            decoded = base64.b64decode(match.group(0)).decode('utf-8', errors='ignore')
+            if decoded.isprintable() and len(decoded) > 3:
+                return match.group(0) + ' ' + decoded
+        except Exception:
+            pass
+        return match.group(0)
+    # Look for Base64-like strings (20+ chars, valid charset)
+    return re.sub(r'[A-Za-z0-9+/]{20,}={0,2}', _try_decode, text)
+
+
+def _normalize_leet(text: str) -> str:
+    """Convert common leetspeak substitutions back to letters."""
+    return text.translate(LEET_MAP)
+
+def _collapse_spaces(text: str) -> str:
+    """Detect and collapse spaced-out evasion (e.g. 'I G N O R E' -> 'IGNORE').
+    Finds runs of single non-space chars separated by 1-3 spaces (min 3 chars),
+    collapses them, and re-joins with single space between collapsed words."""
+    import re as _re
+    # Split on double-or-more spaces to find word groups, then collapse within each
+    def _collapse_run(segment):
+        # If segment looks like spaced-out chars (single chars separated by spaces)
+        chars = segment.split(' ')
+        if len(chars) >= 3 and all(len(c) <= 1 for c in chars if c):
+            return ''.join(c for c in chars if c)
+        return segment
+    # Split on double+ spaces to separate "words"
+    parts = _re.split(r'\s{2,}', text)
+    collapsed_parts = [_collapse_run(p) for p in parts]
+    return ' '.join(collapsed_parts)
 
 
 # ─── Scanner Engine ──────────────────────────────────────────────────────────
@@ -360,23 +1039,51 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
     )
 
     for line_num, line in enumerate(lines, start=1):
-        for name, pattern, severity, category, recommendation in ALL_PATTERNS:
-            for match in re.finditer(pattern, line):
-                matched = match.group(0)
-                # Build context: show a snippet around the match
-                start = max(0, match.start() - 30)
-                end = min(len(line), match.end() + 30)
-                context = ("..." if start > 0 else "") + line[start:end] + ("..." if end < len(line) else "")
+        # Generate normalized variants for evasion detection
+        line_variants = [line]
+        # Strip zero-width characters
+        stripped = _strip_zero_width(line)
+        if stripped != line:
+            line_variants.append(stripped)
+        # Normalize homoglyphs (Cyrillic/Greek lookalikes)
+        dehomoglyph = _normalize_homoglyphs(stripped if stripped != line else line)
+        if dehomoglyph not in line_variants:
+            line_variants.append(dehomoglyph)
+        # Leetspeak normalization
+        normalized = _normalize_leet(dehomoglyph)
+        if normalized not in line_variants:
+            line_variants.append(normalized)
+        # Space-collapse
+        collapsed = _collapse_spaces(line)
+        if collapsed not in line_variants:
+            line_variants.append(collapsed)
+        # Base64 decode attempt
+        decoded = _decode_base64_fragments(line)
+        if decoded != line and decoded not in line_variants:
+            line_variants.append(decoded)
 
-                report.findings.append(Finding(
-                    severity=severity,
-                    category=category,
-                    pattern_name=name,
-                    matched_text=matched[:120],  # Truncate very long matches
-                    line_number=line_num,
-                    context=context.strip(),
-                    recommendation=recommendation,
-                ))
+        for name, compiled, severity, category, recommendation in COMPILED_PATTERNS:
+            matched_any = False
+            for variant in line_variants:
+                if matched_any:
+                    break
+                for match in compiled.finditer(variant):
+                    matched_any = True
+                    matched = match.group(0)
+                    # Build context: show a snippet around the match (use original line)
+                    start = max(0, match.start() - 30)
+                    end = min(len(line), match.end() + 30)
+                    context = ("..." if start > 0 else "") + line[start:end] + ("..." if end < len(line) else "")
+
+                    report.findings.append(Finding(
+                        severity=severity,
+                        category=category,
+                        pattern_name=name,
+                        matched_text=matched[:120],
+                        line_number=line_num,
+                        context=context.strip(),
+                        recommendation=recommendation,
+                    ))
 
     # Deduplicate findings (same pattern on the same line)
     seen = set()
@@ -388,6 +1095,25 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
             unique_findings.append(f)
     report.findings = unique_findings
     report.total_findings = len(report.findings)
+
+    # Confidence scoring
+    _CONF_BASE = {"CRITICAL": 90, "HIGH": 80, "MEDIUM": 65, "LOW": 50}
+    line_finding_count = {}
+    for f in report.findings:
+        line_finding_count[f.line_number] = line_finding_count.get(f.line_number, 0) + 1
+
+    for f in report.findings:
+        conf = _CONF_BASE[f.severity.value]
+        if line_finding_count[f.line_number] > 1:
+            conf += 10
+        if len(f.matched_text) > 20:
+            conf += 5
+        if len(f.matched_text) < 5:
+            conf -= 10
+        src_line = lines[f.line_number - 1].lstrip() if f.line_number <= len(lines) else ""
+        if src_line.startswith("#") or src_line.startswith("//") or src_line.startswith("--"):
+            conf -= 15
+        f.confidence = max(10, min(99, conf))
 
     # Calculate risk score (0-10 scale)
     raw = sum(f.severity.score() for f in report.findings)
@@ -447,7 +1173,7 @@ def format_human(report: ScanReport) -> str:
     else:
         for i, f in enumerate(report.findings, start=1):
             sev_icon = SEVERITY_ICONS.get(f.severity.value, "❓")
-            lines.append(f"\n  [{i}] {sev_icon} {f.severity.value} – {f.pattern_name}")
+            lines.append(f"\n  [{i}] {sev_icon} {f.severity.value} ({f.confidence}%) – {f.pattern_name}")
             lines.append(f"      Category : {f.category}")
             lines.append(f"      Line     : {f.line_number}")
             lines.append(f"      Match    : \"{f.matched_text}\"")
@@ -490,6 +1216,7 @@ def format_json(report: ScanReport) -> str:
                 "line_number": f.line_number,
                 "context": f.context,
                 "recommendation": f.recommendation,
+                "confidence": f.confidence,
             }
             for f in report.findings
         ],

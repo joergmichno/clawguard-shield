@@ -81,15 +81,18 @@ class TestTierLimits:
     """Tier configuration."""
 
     def test_free_tier(self):
-        assert TIER_LIMITS["free"]["daily_limit"] == 100
+        assert TIER_LIMITS["free"]["monthly_limit"] == 3
+        assert TIER_LIMITS["free"]["daily_limit"] is None
         assert TIER_LIMITS["free"]["max_text_length"] == 5000
 
     def test_pro_tier(self):
-        assert TIER_LIMITS["pro"]["daily_limit"] == 10000
+        assert TIER_LIMITS["pro"]["daily_limit"] == 1000
+        assert TIER_LIMITS["pro"]["monthly_limit"] is None
         assert TIER_LIMITS["pro"]["max_text_length"] == 50000
 
     def test_enterprise_tier(self):
-        assert TIER_LIMITS["enterprise"]["daily_limit"] is None  # unlimited
+        assert TIER_LIMITS["enterprise"]["daily_limit"] is None
+        assert TIER_LIMITS["enterprise"]["monthly_limit"] is None
         assert TIER_LIMITS["enterprise"]["max_text_length"] == 200000
 
     def test_all_tiers_exist(self):

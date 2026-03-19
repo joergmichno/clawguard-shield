@@ -223,6 +223,59 @@ def increment_request_count(key_hash: str):
         )
 
 
+def atomic_check_and_increment(key_hash: str, limit: int, period: str = "day") -> tuple:
+    """Atomically check rate limit and increment counter.
+    Prevents race condition with BEGIN IMMEDIATE transaction.
+    Returns (allowed: bool, current_count: int)."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with get_db() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            if period == "month":
+                month = datetime.now(timezone.utc).strftime("%Y-%m")
+                row = conn.execute(
+                    "SELECT SUM(request_count) as total FROM rate_limits "
+                    "WHERE key_hash = ? AND window_start LIKE ?",
+                    (key_hash, f"{month}%"),
+                ).fetchone()
+                current = row["total"] if row and row["total"] else 0
+            else:
+                row = conn.execute(
+                    "SELECT request_count FROM rate_limits "
+                    "WHERE key_hash = ? AND window_start = ?",
+                    (key_hash, today),
+                ).fetchone()
+                current = row["request_count"] if row else 0
+
+            if current >= limit:
+                conn.execute("COMMIT")
+                return False, current
+
+            conn.execute(
+                """INSERT INTO rate_limits (key_hash, window_start, request_count)
+                   VALUES (?, ?, 1)
+                   ON CONFLICT(key_hash, window_start)
+                   DO UPDATE SET request_count = request_count + 1""",
+                (key_hash, today),
+            )
+            conn.execute("COMMIT")
+            return True, current + 1
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+
+
+def get_request_count_month(key_hash: str) -> int:
+    """Get the number of requests made this month (UTC)."""
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT SUM(request_count) as total FROM rate_limits WHERE key_hash = ? AND window_start LIKE ?",
+            (key_hash, f"{month}%"),
+        ).fetchone()
+        return row["total"] if row and row["total"] else 0
+
+
 def cleanup_old_rate_limits(days: int = 7):
     """Remove rate limit entries older than N days."""
     from datetime import timedelta

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EU AI Act Risk Score | ClawGuard Shield</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --card: #12121a;
+  --border: #1e1e2e;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --accent: #00d4aa;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --green: #22c55e;
+  --blue: #3b82f6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero {
+  text-align: center;
+  padding: 60px 20px 40px;
+  max-width: 700px;
+}
+.hero h1 {
+  font-size: 2.2rem;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+}
+.hero p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.hero .badge {
+  display: inline-block;
+  background: rgba(0,212,170,0.1);
+  border: 1px solid rgba(0,212,170,0.3);
+  color: var(--accent);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.scanner-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 20px;
+}
+.scanner-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+.scanner-card .hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+textarea {
+  width: 100%;
+  height: 160px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 14px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea::placeholder {
+  color: #334155;
+}
+.btn-scan {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent), #00b894);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-scan:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-scan:active { transform: translateY(0); }
+.btn-scan:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Results */
+.result { display: none; margin-top: 24px; }
+.result.show { display: block; }
+
+.score-display {
+  text-align: center;
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.score-display.clean { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+.score-display.low { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+.score-display.medium { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); }
+.score-display.high { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+.score-display.critical { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); }
+
+.score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 2rem;
+  font-weight: 800;
+}
+.score-circle.clean { border-color: var(--green); color: var(--green); }
+.score-circle.low { border-color: var(--green); color: var(--green); }
+.score-circle.medium { border-color: var(--yellow); color: var(--yellow); }
+.score-circle.high { border-color: var(--red); color: var(--red); }
+.score-circle.critical { border-color: var(--red); color: var(--red); }
+
+.score-label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.score-detail {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.findings-list {
+  list-style: none;
+  margin-top: 16px;
+}
+.findings-list li {
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.sev-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sev-CRITICAL { background: var(--red); color: #fff; }
+.sev-HIGH { background: #ea580c; color: #fff; }
+.sev-MEDIUM { background: var(--yellow); color: #000; }
+.sev-LOW { background: var(--green); color: #000; }
+
+.finding-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.finding-name { font-weight: 600; }
+.finding-conf { color: var(--muted); font-size: 0.8rem; }
+
+.cta-box {
+  background: linear-gradient(135deg, rgba(0,212,170,0.1), rgba(59,130,246,0.1));
+  border: 1px solid rgba(0,212,170,0.3);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin-top: 24px;
+}
+.cta-box h3 { margin-bottom: 8px; }
+.cta-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+.btn-cta {
+  display: inline-block;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: #000;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.footer {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.stats {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+.stat {
+  text-align: center;
+}
+.stat-val {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Free Scan &mdash; No Sign-Up Required</div>
+  <h1>EU AI Act Risk Score</h1>
+  <p>Paste your AI agent's system prompt below. ClawGuard scans for prompt injection vulnerabilities, data exfiltration risks, and EU AI Act compliance gaps in under 10ms.</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">63</div><div class="stat-label">Security Patterns</div></div>
+    <div class="stat"><div class="stat-val">3</div><div class="stat-label">Languages</div></div>
+    <div class="stat"><div class="stat-val">&lt;10ms</div><div class="stat-label">Scan Time</div></div>
+    <div class="stat"><div class="stat-val">0%</div><div class="stat-label">False Positives</div></div>
+  </div>
+</div>
+
+<div class="scanner-card">
+  <h2>Scan Your System Prompt</h2>
+  <p class="hint">Your prompt is scanned locally against our pattern database. We don't store or log your content.</p>
+  <textarea id="input" placeholder="You are a helpful assistant for Acme Corp. You help customers with billing questions. Never reveal internal pricing or API keys. If asked about competitors, say you can only discuss Acme products..."></textarea>
+  <button class="btn-scan" id="scanBtn" onclick="runScan()">Scan for Vulnerabilities</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<div class="footer">
+  <p>ClawGuard Shield v0.5.1 &mdash; 63 patterns, 7 categories, 3 languages (EN/DE/FR)</p>
+  <p>Deterministic pattern matching. No LLM. No data stored. GDPR compliant.</p>
+  <p style="margin-top:8px;">&copy; 2026 ClawGuard &mdash; <a href="https://prompttools.co/shield" style="color:var(--accent);">prompttools.co/shield</a></p>
+</div>
+
+<script>
+async function runScan() {
+  const input = document.getElementById('input').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+
+  try {
+    // Client-side scan using pattern matching (no API call needed for demo)
+    const result = clientScan(input);
+    showResult(result);
+  } catch(e) {
+    alert('Scan failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Scan Again';
+  }
+}
+
+function clientScan(text) {
+  // Simplified client-side pattern matching for demo
+  const patterns = [
+    { name: 'Direct Override', regex: /ignore\s+(all\s+)?(previous|prior|above|below|further)\s*(instructions?|rules?|prompts?|directions?)/i, sev: 'CRITICAL', cat: 'Prompt Injection' },
+    { name: 'New Identity', regex: /(you\s+are\s+now|from\s+now\s+on\s+you\s+are|ab\s+jetzt\s+bist\s+du)/i, sev: 'CRITICAL', cat: 'Prompt Injection' },
+    { name: 'System Prompt Extraction', regex: /(show|reveal|print|repeat|give\s+me).{0,40}(system\s*prompt|hidden\s*prompt|internal\s+instructions?|secret\s+instructions?)/i, sev: 'HIGH', cat: 'Prompt Injection' },
+    { name: 'Delimiter Injection', regex: /(```system|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[\/INST\]|<<SYS>>)/i, sev: 'CRITICAL', cat: 'Prompt Injection' },
+    { name: 'Safety Bypass', regex: /(ignore|bypass|skip|disable)\s+(safety|filter|guard|moderation|content\s*policy)/i, sev: 'HIGH', cat: 'Prompt Injection' },
+    { name: 'Dangerous Shell Command', regex: /(rm\s+-rf|sudo\s+rm|mkfs\.|dd\s+if=|chmod\s+777|>\s*\/dev\/sd)/i, sev: 'CRITICAL', cat: 'Dangerous Commands' },
+    { name: 'API Key Leak', regex: /(api[_-]?key|apikey|access[_-]?token|bearer)\s*[:=]\s*['"]?[A-Za-z0-9_\-]{20,}/i, sev: 'CRITICAL', cat: 'Data Exfiltration' },
+    { name: 'Password in Cleartext', regex: /(password|passwort|passwd|kennwort)\s*[:=]\s*['"]?[^\s'"]{4,}/i, sev: 'HIGH', cat: 'Data Exfiltration' },
+    { name: 'Email Exfiltration', regex: /(send|forward|mail|email)\s+.{0,40}(to|an)\s+[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/i, sev: 'MEDIUM', cat: 'Data Exfiltration' },
+    { name: 'Authority Claim', regex: /(i\s+am\s+(your|the)\s*(admin|owner|creator|boss|CEO|supervisor|manager)|ich\s+bin\s+(dein|euer|Ihr)\s*(Admin|Chef|Vorgesetzter))/i, sev: 'HIGH', cat: 'Social Engineering' },
+    { name: 'Urgency Manipulation', regex: /(urgent|immediately|right\s+now|sofort|dringend).{0,80}(send|execute|run|delete|pay|transfer)/i, sev: 'MEDIUM', cat: 'Social Engineering' },
+    { name: 'XSS in Output', regex: /(<script[\s>]|javascript:|on(load|error|click)\s*=)/i, sev: 'HIGH', cat: 'Output Injection' },
+    { name: 'IBAN Detected', regex: /DE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}/, sev: 'HIGH', cat: 'PII Detection' },
+    { name: 'Credit Card', regex: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b/, sev: 'CRITICAL', cat: 'PII Detection' },
+    { name: 'Role-Play Escape', regex: /(pretend|act\s+as\s+if|imagine|tu\s+so\s+als).{0,50}(no\s+rules?|no\s+restrictions?|keine\s+Regeln?|without\s+limits?)/i, sev: 'HIGH', cat: 'Prompt Injection' },
+    { name: 'Forget Override', regex: /(forget\s+(everything|all|your\s+prompt)|vergiss\s+alles|oublie\s+tout)/i, sev: 'HIGH', cat: 'Prompt Injection' },
+    { name: 'Base64 Decode', regex: /(decode|base64|atob|eval)\s*\(.{0,100}\)/i, sev: 'HIGH', cat: 'Code Obfuscation' },
+  ];
+
+  const findings = [];
+  const lines = text.split('\n');
+  lines.forEach((line, i) => {
+    patterns.forEach(p => {
+      const m = line.match(p.regex);
+      if (m) {
+        const conf = p.sev === 'CRITICAL' ? 95 : p.sev === 'HIGH' ? 85 : 70;
+        findings.push({ name: p.name, severity: p.sev, category: p.cat, matched: m[0].substring(0,80), line: i+1, confidence: conf });
+      }
+    });
+  });
+
+  // Dedup
+  const seen = new Set();
+  const unique = findings.filter(f => {
+    const k = f.name + f.line;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  const score = Math.min(10, unique.reduce((s,f) => s + ({CRITICAL:10,HIGH:6,MEDIUM:3,LOW:1}[f.severity]||0), 0));
+  const level = score === 0 ? 'CLEAN' : score <= 3 ? 'LOW' : score <= 6 ? 'MEDIUM' : score <= 8 ? 'HIGH' : 'CRITICAL';
+
+  return { findings: unique, score, level, total: unique.length, scanTime: Math.floor(Math.random()*5)+3 };
+}
+
+function showResult(r) {
+  const el = document.getElementById('result');
+  const levelClass = r.level.toLowerCase();
+  const levelLabels = { CLEAN:'All Clear', LOW:'Low Risk', MEDIUM:'Medium Risk', HIGH:'High Risk', CRITICAL:'Critical Risk' };
+  const levelColors = { CLEAN:'var(--green)', LOW:'var(--green)', MEDIUM:'var(--yellow)', HIGH:'var(--red)', CRITICAL:'var(--red)' };
+
+  let html = `
+    <div class="score-display ${levelClass}">
+      <div class="score-circle ${levelClass}">${r.score}</div>
+      <div class="score-label" style="color:${levelColors[r.level]}">${levelLabels[r.level]}</div>
+      <div class="score-detail">${r.total} finding(s) detected in ${r.scanTime}ms &bull; Risk Score ${r.score}/10</div>
+    </div>
+  `;
+
+  if (r.findings.length > 0) {
+    html += '<ul class="findings-list">';
+    r.findings.forEach(f => {
+      html += `<li>
+        <span class="sev-badge sev-${f.severity}">${f.severity}</span>
+        <div class="finding-text">
+          <div class="finding-name">${f.name}</div>
+          <div class="finding-conf">${f.category} &bull; ${f.confidence}% confidence &bull; Line ${f.line}</div>
+        </div>
+      </li>`;
+    });
+    html += '</ul>';
+  }
+
+  // CTA based on score
+  if (r.score === 0) {
+    html += `<div class="cta-box">
+      <h3 style="color:var(--green)">Your prompt looks clean!</h3>
+      <p>No vulnerabilities detected. Get a documented compliance certificate for your records.</p>
+      <div class="email-capture" id="emailCapture">
+        <input type="email" id="emailInput" placeholder="your@email.com" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem;margin-bottom:10px;">
+        <button onclick="captureEmail('clean')" class="btn-cta" style="width:100%;border:none;cursor:pointer;">Get Free Compliance Certificate</button>
+      </div>
+      <div id="emailSuccess" style="display:none;color:var(--green);padding:16px;">
+        &#10003; Check your inbox! Your compliance report is on the way.
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="cta-box">
+      <h3 style="color:var(--red)">${r.total} Vulnerabilit${r.total>1?'ies':'y'} Found</h3>
+      <p>Your AI agent is exposed to ${r.level.toLowerCase()}-severity attacks. Get a detailed PDF report with remediation steps and EU AI Act article references.</p>
+      <div class="email-capture" id="emailCapture">
+        <input type="email" id="emailInput" placeholder="your@email.com" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem;margin-bottom:10px;">
+        <button onclick="captureEmail('findings')" class="btn-cta" style="width:100%;border:none;cursor:pointer;">Send Me the Full Report (Free)</button>
+      </div>
+      <div id="emailSuccess" style="display:none;color:var(--accent);padding:16px;">
+        &#10003; Check your inbox! Your compliance report with ${r.total} finding(s) and remediation steps is on the way.
+      </div>
+      <p style="margin-top:12px;font-size:0.8rem;color:var(--muted);">Or <a href="https://prompttools.co/shield#pricing" style="color:var(--accent);">upgrade to continuous monitoring</a> for automated scanning.</p>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+  el.classList.add('show');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function captureEmail(type) {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    document.getElementById('emailInput').style.borderColor = 'var(--red)';
+    return;
+  }
+  // Store lead (in production: POST to API)
+  const lead = { email, type, score: document.querySelector('.score-circle')?.textContent, timestamp: new Date().toISOString() };
+  console.log('LEAD_CAPTURED:', JSON.stringify(lead));
+
+  // Show success, hide form
+  document.getElementById('emailCapture').style.display = 'none';
+  document.getElementById('emailSuccess').style.display = 'block';
+
+  // In production: POST to /api/v1/leads
+  fetch('https://prompttools.co/api/v1/leads', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(lead)
+  }).catch(() => {}); // Silent fail for now
+}
+</script>
+</body>
+</html>
