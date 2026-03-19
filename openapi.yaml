@@ -3,7 +3,7 @@ info:
   title: ClawGuard Shield API
   description: |
     AI Agent Security Scanning API — detect prompt injection, data exfiltration,
-    and 40+ attack patterns in under 10ms with zero LLM dependency.
+    and 132 attack patterns in 14 languages in under 10ms with zero LLM dependency. EU AI Act compliance mapping included.
   version: 1.0.0
   contact:
     name: Joerg Michno
@@ -46,7 +46,7 @@ paths:
                     example: 1.0.0
                   patterns_count:
                     type: integer
-                    example: 42
+                    example: 132
 
   /scan:
     post:
@@ -144,7 +144,7 @@ paths:
                 properties:
                   total_patterns:
                     type: integer
-                    example: 42
+                    example: 132
                   categories:
                     type: object
                     additionalProperties:
