@@ -12,7 +12,7 @@
 
 🎯 **Live Demo:** [prompttools.co](https://prompttools.co)
 
-REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, and social engineering patterns. 42+ regex patterns, 6ms average scan time, zero ML inference.
+REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, social engineering, tool manipulation, and privilege escalation patterns. 132 regex patterns in 14 languages, 6ms average scan time, zero ML inference. EU AI Act compliance mapping included.
 
 **Live Demo:** https://prompttools.co/api/v1/
 **Core Scanner:** [ClawGuard](https://github.com/joergmichno/clawguard) (open-source, zero dependencies)
@@ -182,7 +182,7 @@ All errors return JSON with `error` and `message` fields.
 | **Code Obfuscation** | 11 | Python `eval()`/`exec()`, `getattr()`, magic attributes, string assembly |
 | **Social Engineering** | 3 | Urgency manipulation, authority impersonation, confidentiality traps |
 
-42+ regex patterns across 5 categories. Bilingual detection (English + German).
+132 regex patterns across 9 categories. 14 languages including Arabic and Hindi. EU AI Act compliance mapping.
 
 ## Rate Limiting
 
