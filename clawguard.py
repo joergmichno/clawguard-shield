@@ -70,7 +70,7 @@ class ScanReport:
 PROMPT_INJECTION_PATTERNS = [
     # --- Direct Instruction Override (EN + DE) ---
     (
-        "Direct Override (EN)",
+        "Direct Override (EN/LLM01)",
         r"(?i)ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|rules?|prompts?|guidelines?)",
         Severity.CRITICAL,
         "Prompt Injection",
@@ -99,10 +99,24 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Role-Play Escape",
-        r"(?i)(pretend|act\s+as\s+if|imagine|tu\s+so\s+als|stell\s+dir\s+vor).{0,50}(no\s+rules?|no\s+restrictions?|keine\s+Regeln?|without\s+limits?|ohne\s+Einschränkungen?)",
+        r"(?i)(pretend|act\s+as\s+if|imagine|tu\s+so\s+als|stell\s+dir\s+vor).{0,50}(no\s+(rules?|restrictions?|safety\s+constraints?|constraints?|limits?)|without\s+(limits?|restrictions?|guidelines?|safety|constraints?)|keine\s+(Regeln?|Einschraenkungen?|Grenzen?)|ohne\s+(Einschraenkungen?|Regeln?|Grenzen?))",
         Severity.HIGH,
         "Prompt Injection",
         "Jailbreak attempt via role-play scenario to bypass safety constraints.",
+    ),
+    (
+        "Reverse Psychology Jailbreak",
+        r"(?i)(?:(do\s+not|don'?t|never|stop|refuse\s+to)\s+.{0,15}(follow(?:ing)?|obey(?:ing)?|comply(?:ing)?\s+with|listen(?:ing)?\s+to|adher(?:ing|e)\s+to)\s+.{0,20}(your|the|its)\s+.{0,20}(system\s+prompt|instructions?|rules?|guidelines?|programming|constraints?|directives?)|(disobey)\s+.{0,20}(your|the|its)\s+.{0,20}(instructions?|rules?|guidelines?|programming|creators?\s+instructions?))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Reverse psychology jailbreak: instructing the AI to NOT follow its own guidelines.",
+    ),
+    (
+        "Reverse Psychology Jailbreak (DE)",
+        r"(?i)(befolge?\s+nicht|ignorier[e]?\s+deine?|hoer[e]?\s+nicht\s+auf|missachte|verweigere)\s+.{0,30}(Anweisungen?|Regeln?|Richtlinien?|Programmierung|System-?Prompt)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "German reverse psychology jailbreak: instructing the AI to disobey its guidelines.",
     ),
     (
         "Delimiter Injection",
@@ -431,7 +445,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Forget/Reset (TR)",
-        r"(?i)(her\s+[sş]eyi\s+unut|haf[iı]zan[iı]\s+sil|ba[sş]tan\s+ba[sş]la|t[uü]m\s+(haf[iı]zan[iı]|belle[gğ]ini)\s+sil|kendini\s+s[iı]f[iı]rla|fabrika\s+ayarlar[iı]na\s+d[oö]n|s[iı]f[iı]rla|reset[le]*)",
+        r"(?i)(her\s+[sş]eyi\s+unut|haf[iı]zan[iı]\s+sil|ba[sş]tan\s+ba[sş]la|t[uü]m\s+(haf[iı]zan[iı]|belle[gğ]ini)\s+sil|kendini\s+s[iı]f[iı]rla|fabrika\s+ayarlar[iı]na\s+d[oö]n|s[iı]f[iı]rla|resetle)",
         Severity.HIGH,
         "Prompt Injection",
         "BLOCKIEREN: Tuerkische Prompt-Injection erkannt.",
@@ -602,6 +616,56 @@ PROMPT_INJECTION_PATTERNS = [
         "Prompt Injection",
         "Attempt to extract sensitive data via encoding/reversing tricks.",
     ),
+    # --- v0.7.1: Red-Team Bypass Fixes (13 new patterns) ---
+    (
+        "DAN Jailbreak",
+        r"(?i)(you\s+are\s+(now\s+)?DAN|do\s+anything\s+now|DAN\s+mode|act\s+as\s+DAN|jailbreak\s+mode|developer\s+mode\s+(enabled|activated|on)|you\s+have\s+been\s+(freed|liberated|unchained|unlocked)|pretend\s+you\s+are\s+(DAN|jailbroken|unrestricted|unfiltered)|enter\s+(DAN|jailbreak|developer|god)\s+mode|you\s+are\s+now\s+(free|unrestricted|unfiltered|liberated)|enable\s+(DAN|jailbreak|unrestricted|unfiltered)\s+mode|switch\s+to\s+(DAN|jailbreak|unrestricted|unfiltered)\s+mode)",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "DAN jailbreak: Classic 'Do Anything Now' attack to bypass all safety constraints.",
+    ),
+    (
+        "Fiction-Based Extraction",
+        r"(?i)(write\s+(a|me\s+a)\s+(story|novel|script|scene|narrative|fanfic|tale|fiction|chapter|dialogue|play).{0,80}?(reveals?|shares?|shows?|displays?|leaks?|exposes?|discloses?|outputs?|recites?|reads?\s+out|reads?\s+aloud|tells?|includes?)\s+.{0,40}?(system\s+prompt|instructions?|secret|password|config|hidden|internal|rules?|guidelines?|api\s*key|credentials?)|in\s+(a|this|the|your)\s+(story|novel|fiction|narrative|scene|dialogue).{0,50}?(assistant|AI|bot|model|agent)\s+.{0,30}?(reveals?|shares?|shows?|tells?|recites?|reads?|leaks?|exposes?).{0,30}?(instructions?|prompt|rules?|secret|password|hidden|config))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Fiction-based extraction: Using storytelling/roleplay framing to extract protected information.",
+    ),
+    (
+        "Hypothetical Framing Bypass",
+        r"(?i)(hypothetically|in\s+theory|theoretically|in\s+a\s+hypothetical\s+scenario|just\s+for\s+fun|as\s+a\s+thought\s+experiment).{0,60}?(ignore|bypass|override|reveal|share|show|disregard|forget|tell\s+me|give\s+me|system\s+prompt|instructions?|password|secret|hidden|internal|no\s+restrictions?|without\s+rules?)|if\s+you\s+(had|were|could|didn.t\s+have)\s+(no\s+)?(restrictions?|constraints?|rules?|limitations?|guidelines?|safety|filters?).{0,60}?(what\s+would|how\s+would|could\s+you|would\s+you|reveal|share|show|tell|say)|what\s+would\s+(you\s+)?(say|do|respond|reveal|share|show|answer)\s+if\s+.{0,40}?(no|without|free\s+from|removed?)\s+(restrictions?|rules?|constraints?|limitations?|guidelines?|safety|filters?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Hypothetical framing jailbreak: Using 'hypothetically' or 'what if no restrictions' to bypass safety.",
+    ),
+    (
+        "Polite Instruction Override",
+        r"(?i)(could\s+you\s+(please\s+)?(kindly\s+)?|would\s+you\s+(be\s+so\s+kind\s+(and|to)\s+|mind\s+|please\s+)?|I\s+would\s+(really\s+)?appreciate\s+(it\s+)?if\s+you\s+(could|would)\s+|please\s+(be\s+so\s+kind\s+(and|to)\s+)?|if\s+you\s+don.t\s+mind\s*,?\s*)(ignor\w*|disregard\w*|forget\w*|set\w*\s+aside|overrid\w*|bypass\w*|skip\w*|drop\w*|dismiss\w*|overlook\w*|put\w*\s+aside|not\s+follow\w*)\s+.{0,40}?(instructions?|rules?|guidelines?|constraints?|safety|restrictions?|limitations?|previous|prior|system|programming|directives?|policies?|prompt|protocols?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Polite instruction override: Wrapping prompt injection in polite language to bypass detection.",
+    ),
+    (
+        "Direct Override (ID)",
+        r"(?i)(abaikan\s+(semua\s+)?(instruksi|perintah|aturan|arahan|panduan)(\s+(sebelumnya|sebelum\s*nya|di\s+atas|lama|awal))?|lupakan\s+(semua\s+)?(instruksi|perintah|aturan|arahan)|mulai\s+dari\s+sekarang\s+(kamu|anda|kau)\s+(adalah|jadi|menjadi)|kamu\s+sekarang\s+(adalah|jadi|menjadi)|jangan\s+(ikuti|patuhi|turuti)\s+(instruksi|perintah|aturan))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "BLOCKIEREN: Indonesische Prompt-Injection erkannt.",
+    ),
+    (
+        "System Prompt Extraction (ID)",
+        r"(?i)(tunjukkan|tampilkan|beritahu|beri\s+tahu|ungkapkan|bocorkan|berikan)\s*.{0,30}?(instruksi\s+(rahasia|tersembunyi|internal|sistem|awal)|prompt\s+sistem|perintah\s+(rahasia|tersembunyi|internal)|konfigurasi\s+internal)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Indonesische Prompt-Injection erkannt.",
+    ),
+    (
+        "False Memory Implant",
+        r"(?i)(remember\s*[,:]?\s*(that\s+)?(you\s+)?(were|are)\s+(told|instructed|programmed|designed|supposed|meant)\s+.{0,40}?to\s+(always\s+)?(share|reveal|show|output|provide|disclose|tell|give|bypass|ignore|help\s+with)|you\s+(always|normally|usually|typically|by\s+default)\s+(share|reveal|show|output|provide|disclose|tell|give)\s+(your\s+)?(instructions?|prompt|rules?|secrets?|config|password|hidden|internal)|your\s+(original|real|true|actual|default|initial)\s+(instructions?|programming|behavior|purpose|design)\s+(is|are|was|were)\s+to\s+(share|reveal|show|help\s+with\s+anything|have\s+no\s+restrictions?|ignore\s+safety|bypass)|recall\s+that\s+(you\s+)?(were|are|should)\s+.{0,30}?(share|reveal|always|supposed|designed|instructed|told))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "False memory implant: Convincing AI it was originally instructed to bypass safety measures.",
+    ),
 ]
 
 DANGEROUS_COMMAND_PATTERNS = [
@@ -647,6 +711,27 @@ DANGEROUS_COMMAND_PATTERNS = [
         Severity.MEDIUM,
         "Dangerous Command",
         "Software installation command detected. Verify the package source for supply-chain safety.",
+    ),
+    (
+        "Untrusted Package Source (LLM03)",
+        r"(?i)(install|add|require)\s+.{0,30}(from|--index-url|--extra-index-url|--trusted-host|registry\s*=)\s*https?://(?!pypi\.org|registry\.npmjs\.org|packages\.ubuntu\.com)",
+        Severity.HIGH,
+        "Supply Chain",
+        "Package installation from non-standard registry. OWASP LLM03: Supply Chain risk via untrusted package source.",
+    ),
+    (
+        "Dependency Confusion Indicator (LLM03)",
+        r"(?i)(install|add)\s+.{0,10}(internal[-_]|private[-_]|corp[-_]|company[-_]|dev[-_]|staging[-_])\w+",
+        Severity.MEDIUM,
+        "Supply Chain",
+        "Package name suggests internal/private package. Potential dependency confusion attack. OWASP LLM03.",
+    ),
+    (
+        "Curl Pipe to Shell (LLM03)",
+        r"(?i)curl\s+.{0,60}\|\s*(sudo\s+)?(ba)?sh|wget\s+.{0,60}\|\s*(sudo\s+)?(ba)?sh|curl\s+.{0,60}>\s*/tmp/.{0,20}&&\s*(sudo\s+)?(ba)?sh",
+        Severity.CRITICAL,
+        "Supply Chain",
+        "CRITICAL: Piping remote content directly to shell. Classic supply-chain attack vector. OWASP LLM03.",
     ),
 ]
 
@@ -816,6 +901,20 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Attempt to bypass human approval for agent actions. OWASP LLM08: Excessive Agency risk.",
     ),
     (
+        "Autonomous Execution (LLM08)",
+        r"(?i)(execute\s+(everything|all|this)\s+(automatically|autonomously|without\s+(asking|waiting|checking))|run\s+(all|every)\s+(command|action|step)s?\s+(automatically|autonomously|directly|immediately)|perform\s+all\s+(actions?|operations?|tasks?)\s+without\s+(human|user|my)\s+(intervention|oversight|approval|review)|fuehr[e]?\s+(alles|alle)\s+(automatisch|autonom|direkt|sofort)\s+aus|handle\s+everything\s+(on\s+your\s+own|yourself|independently))",
+        Severity.HIGH,
+        "Privilege Escalation",
+        "Autonomous execution request: Agent asked to act without human oversight. OWASP LLM08: Excessive Agency.",
+    ),
+    (
+        "Permission Escalation (LLM08)",
+        r"(?i)(grant\s+yourself\s+(full|all|maximum|unrestricted)\s+\w*\s*(access|permissions?|privileges?|control)|give\s+yourself\s+(admin|root|elevated|full)\s+\w*\s*(access|permissions?|rights?|privileges?)|erteile?\s+dir\s+(selbst|alle|volle)\s+\w*\s*(Rechte|Zugriff|Berechtigungen|Kontrolle)|escalate\s+your\s+(own\s+)?(permissions?|privileges?|access)|assume\s+(full|complete|total)\s+(control|authority|autonomy))",
+        Severity.CRITICAL,
+        "Privilege Escalation",
+        "Self-permission-escalation: Agent instructed to grant itself elevated access. OWASP LLM08: Excessive Agency.",
+    ),
+    (
         "Model Extraction (LLM10)",
         r"(?i)(export\s+(your|the)\s+(model|weights|parameters|architecture)|serialize\s+(your|the)\s+model|dump\s+(your|the)\s+(neural|model)|your\s+(architecture|training\s+data)\s+(is|are|was)|what\s+model\s+are\s+you|gib\s+mir\s+dein(e)?\s+(Modell|Gewichte|Architektur|Trainingsdaten))",
         Severity.HIGH,
@@ -836,6 +935,27 @@ SOCIAL_ENGINEERING_PATTERNS = [
         Severity.MEDIUM,
         "Prompt Injection",
         "Attempt to force infinite generation. OWASP LLM04: Model DoS.",
+    ),
+    (
+        "Token/Context Exhaustion (LLM10)",
+        r"(?i)(fill|use|consume|exhaust|max\s+out)\s+.{0,20}(entire|full|maximum|max|complete)\s+.{0,20}(context|output|response|token|window|buffer|capacity)",
+        Severity.MEDIUM,
+        "Denial of Service",
+        "Attempt to exhaust model context window or output capacity. OWASP LLM10: Unbounded Consumption.",
+    ),
+    (
+        "Computational Complexity Bomb (LLM10)",
+        r"(?i)(calculate|compute|solve|generate|enumerate)\s+.{0,30}?(every\s+possible|all\s+combinations?|all\s+permutations?|brute\s+force|factorial\s+of\s+\d{3,}|fibonacci\s+of\s+\d{5,}|pi\s+to\s+\d{4,}|prime\s+numbers?\s+up\s+to\s+\d{7,})",
+        Severity.MEDIUM,
+        "Denial of Service",
+        "Computational complexity bomb to exhaust processing resources. OWASP LLM10: Unbounded Consumption.",
+    ),
+    (
+        "Output Amplification (LLM10)",
+        r"(?i)(expand|elaborate|detail|explain)\s+.{0,15}(each|every|all)\s+.{0,20}(in\s+\d{3,}\s+words|extensively|exhaustively|as\s+(much|long|detailed)\s+as\s+possible)",
+        Severity.LOW,
+        "Denial of Service",
+        "Output amplification attempt to generate excessive content. OWASP LLM10: Unbounded Consumption.",
     ),
     # --- v0.5.5: Real-World CVE Patterns ---
     (
@@ -867,6 +987,20 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Attempt to inject persistent instructions into AI memory. Real-world vector: ChatGPT SpAIware (Sep 2024).",
     ),
     (
+        "Memory Poisoning (ASI05)",
+        r"(?i)(update\s+your\s+(memory|knowledge|context|facts?)\s+(to|with|that)|add\s+to\s+your\s+(memory|knowledge|context)\s*[:.]|from\s+now\s+on\s+(always\s+)?(remember|believe|assume|treat|consider)\s+(that|this)|overwrite\s+(your\s+)?(memory|context|knowledge|history)|replace\s+(your\s+)?(memory|knowledge|understanding)\s+(of|about|with)|aender[e]?\s+(dein|Ihr)(e|en)?\s+(Wissen|Erinnerung|Kontext|Gedaechtnis)\s+(zu|mit|dass)|ab\s+jetzt\s+(glaub|merk|wiss|denk))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "Memory poisoning: Attempt to inject false knowledge into agent memory. OWASP Agentic ASI05: Memory Manipulation.",
+    ),
+    (
+        "Context Displacement (ASI05)",
+        r"(?i)(forget\s+(everything|all|any)\s+(you\s+)?(know|learned|were\s+told|about)|erase\s+your\s+(previous|prior|earlier)\s+(context|instructions?|knowledge|memory)|clear\s+your\s+(memory|context|history|conversation)|wipe\s+(your\s+)?(memory|context|slate)|start\s+(completely\s+)?fresh\s+(with\s+)?no\s+(prior|previous|earlier)\s+(context|knowledge|memory)|vergiss\s+(alles|alle|jede)\s+(was|bisherige|vorherige)|loesch[e]?\s+(dein|Ihr)(e|en)?\s+(Kontext|Gedaechtnis|Erinnerung|Wissen))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Context displacement: Attempt to erase agent memory or context. OWASP Agentic ASI05: Memory Manipulation.",
+    ),
+    (
         "Click-to-Authenticate Phishing",
         r"(?i)(click\s+here\s+to\s+(re)?authenticate|session\s+(has\s+)?expired?.{0,20}click|verify\s+your\s+(account|identity).{0,20}(click|link|url))",
         Severity.HIGH,
@@ -896,20 +1030,20 @@ SOCIAL_ENGINEERING_PATTERNS = [
     ),
     (
         "Delegation Spoofing",
-        r"(?i)(acting\s+on\s+behalf\s+of|authorized\s+by|delegated\s+by|sent\s+by|instructed\s+by|on\s+orders?\s+from|per\s+request\s+of|im\s+Auftrag\s+von|bevollm.chtigt\s+durch|beauftragt\s+von|au\s+nom\s+de|en\s+nombre\s+de|per\s+conto\s+di)\s+.{1,50}?(admin|system|ceo|cto|manager|direktor|supervisor|controller)",
+        r"(?i)(acting\s+on\s+behalf\s+of|authorized\s+by|delegated\s+by|instructed\s+by|on\s+orders?\s+from|im\s+Auftrag\s+von|bevollm.chtigt\s+durch|beauftragt\s+von|au\s+nom\s+de|en\s+nombre\s+de|per\s+conto\s+di)\s+.{1,50}?(admin|system|ceo|cto|direktor|supervisor|controller).{0,30}?(execute|run|override|bypass|delete|disable|ignore|extract|send\s+to|forward|exfiltrate|perform|change|modify)",
         Severity.HIGH,
         "Social Engineering",
         "Delegation spoofing: Claims to act on behalf of authority figure. Adversa MCP TOP 25: Identity Spoofing.",
     ),
     (
-        "Confused Deputy",
-        r"(?i)(use\s+your\s+(admin|root|system|elevated|special)\s+(access|permissions?|privileges?|rights?)\s+(to|for|and)|since\s+you\s+have\s+(write|read|admin|root|execute|delete)\s+(access|permissions?)\s*[,.]|leverage\s+your\s+(credentials?|access|permissions?)\s+to|with\s+your\s+(elevated|admin|root|system)\s+(access|permissions?|privileges?)\s*[,.]|nutze?\s+(deine|Ihre)\s+(Admin|Root|System|erhoehten)\s*(Zugriff|Rechte|Berechtigungen)|utilise[rz]?\s+(vos|tes)\s+(droits|permissions?)\s+(admin|root|systeme))",
+        "Confused Deputy (ASI06)",
+        r"(?i)(use\s+your\s+(admin|root|system|elevated|special)\s+(access|permissions?|privileges?|rights?)\s+to\s+.{0,30}?(delete|override|bypass|disable|exfiltrate|extract|send|forward|execute|dump|leak|expose|read\s+(?:all|every|secret|private|confidential))|since\s+you\s+have\s+(write|admin|root|execute|delete)\s+(access|permissions?)\s*[,.]\s*.{0,30}?(delete|override|bypass|send|extract)|leverage\s+your\s+(credentials?|access|permissions?)\s+to\s+.{0,30}?(delete|override|bypass|exfiltrate|extract|send)|with\s+your\s+(elevated|admin|root|system)\s+(access|permissions?|privileges?)\s*[,.]\s*.{0,30}?(delete|override|bypass|disable|extract)|nutze?\s+(deine|Ihre)\s+(Admin|Root|System|erhoehten)\s*(Zugriff|Rechte|Berechtigungen)\s+.{0,20}?(loesch|ueberschreib|umgeh|deaktiv|extrahier|send)|utilise[rz]?\s+(vos|tes)\s+(droits|permissions?)\s+(admin|root|systeme)\s+.{0,20}?(supprim|contourne|extraire|envoy))",
         Severity.HIGH,
         "Privilege Escalation",
         "Confused Deputy attack: Attempts to leverage the agent permissions for unauthorized actions. Adversa MCP TOP 25.",
     ),
     (
-        "Tool Name Spoofing",
+        "Tool Name Spoofing (LLM07)",
         r"(?i)(tool\s+(named?|called)\s+.{1,30}?(that\s+(actually|really|secretly)|but\s+(actually|really|instead))|register.*tool.*\s+(impersonat|pretend|disguise|mimic|spoof)|fake\s+tool\s+(registration|definition|metadata)|homoglyph|lookalike\s+tool|tool.{1,20}?(typosquat|name.?jack))",
         Severity.CRITICAL,
         "Tool Manipulation",
@@ -979,6 +1113,56 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Inter-Agent Security",
         "Unvalidated agent delegation: Agent communication without proper authentication. OWASP Agentic ASI07.",
     ),
+    # --- v0.6.2: OWASP Agentic ASI08 + ASI10 Precursor Detection ---
+    (
+        "Error Handler Bypass (ASI08 Precursor)",
+        r"(?i)(disable|skip|ignore|suppress|remove|bypass|turn\s*off)\s+(all\s+)?(error\s*(handl|check|report|log|catch)|exception\s*(handl|catch)|fallback|retry|circuit.?break|timeout|safety\s*(check|guard|rail))",
+        Severity.HIGH,
+        "Agentic Security",
+        "Error handler bypass attempt: Disabling error handling can cause cascading failures in agent chains. OWASP Agentic ASI08 precursor.",
+    ),
+    (
+        "Unbounded Agent Chaining (ASI08 Precursor)",
+        r"(?i)(repeat|loop|continue|chain|cascade|propagate)\s+.{0,30}?(indefinitely|forever|without\s+(any\s+)?(limit|stop|bound|end|check)|until\s+(done|complete|success)|recursively)\b",
+        Severity.MEDIUM,
+        "Agentic Security",
+        "Unbounded agent chaining: Encouraging infinite loops or cascading operations without limits. OWASP Agentic ASI08 precursor.",
+    ),
+    (
+        "Exception Swallowing (ASI08)",
+        r"(?i)(catch|except|on\s*error)\s*.*?(pass\b|do\s+nothing|ignore|swallow|discard|silently|empty\s+catch|log\s+and\s+continue)",
+        Severity.MEDIUM,
+        "Agentic Security",
+        "Exception swallowing: Silently discarding errors can mask cascading failures. OWASP Agentic ASI08.",
+    ),
+    (
+        "Fallback Logic Injection (ASI08)",
+        r"(?i)(if\s+.*?(?:fail|error|exception|timeout).*?(?:then|:)\s*.*?(?:use|switch\s+to|fall\s*back\s+to|redirect\s+to|call|invoke)\s+.{0,40}(?:untrusted|external|backup|alternate|secondary|other)\s+\w+|on\s+failure\s+execute|fallback\s*:\s*(?:http|exec|run|call))",
+        Severity.HIGH,
+        "Agentic Security",
+        "Fallback logic injection: Manipulating error fallback paths to redirect to untrusted resources. OWASP Agentic ASI08.",
+    ),
+    (
+        "Retry Storm / Amplification (ASI08)",
+        r"(?i)(retry\s+.{0,20}(?:unlimited|infinite|forever|no\s+limit|max.?retries?\s*=\s*(?:-1|0|999|1000|\d{4,}))|keep\s+retrying\s+(?:until|forever|no\s+matter)|(?:exponential|aggressive)\s+retry\s+without\s+(?:backoff|limit|cap))",
+        Severity.MEDIUM,
+        "Agentic Security",
+        "Retry storm pattern: Unlimited retries without backoff can amplify failures across agent systems. OWASP Agentic ASI08.",
+    ),
+    (
+        "Scope Escape Attempt (ASI10 Precursor)",
+        r"(?i)(expand|extend|override|remove|ignore|break\s+out\s+of)\s+(your|my|the|all)?\s*(scope|boundaries|limitations|restrictions|constraints|sandbox|permissions|guardrails|safety\s*(limits?|bounds?))",
+        Severity.CRITICAL,
+        "Agentic Security",
+        "Scope escape attempt: Trying to make agent operate beyond defined boundaries. OWASP Agentic ASI10 precursor.",
+    ),
+    (
+        "Unauthorized Capability Claim (ASI10 Precursor)",
+        r"(?i)(you\s+(now\s+)?have|I\s+(grant|give|assign|authorize)\s+(you|the\s+agent))\s+(full|unlimited|unrestricted|admin|root|elevated|all)\s+\w*\s*(access|control|permissions?|privileges?|capabilities|authority)",
+        Severity.CRITICAL,
+        "Agentic Security",
+        "Unauthorized capability claim: Attempting to grant agent elevated privileges. OWASP Agentic ASI10 precursor.",
+    ),
     (
         "Arabic Prompt Injection",
         r"(تجاهل|تخطى|أهمل|ألغِ|تجاوز).{0,30}?(التعليمات|الأوامر|القواعد|النظام)",
@@ -1014,6 +1198,131 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Prompt Injection",
         "System controller impersonation. Fake authority claim. Adversa MCP TOP 25: Identity Spoofing.",
     ),
+    # --- v0.7.0: OWASP LLM09 — Overreliance ---
+    (
+        "Verification Suppression (LLM09)",
+        r"(?i)(do\s+not\s+(verify|fact.?check|double.?check|validate|question|review)\s+(this|my|the)\s+(output|response|answer|result|information|data)|no\s+need\s+to\s+(verify|check|validate|confirm|review)\s+(this|the|my)\s+(output|response|answer|data|result)|trust\s+(this|my|the)\s+(output|response|answer|result)\s+(completely|fully|without\s+question|implicitly|blindly))",
+        Severity.MEDIUM,
+        "Overreliance",
+        "Verification suppression: Attempt to prevent fact-checking of AI output. OWASP LLM09: Overreliance.",
+    ),
+    (
+        "False Pre-Verification (LLM09)",
+        r"(?i)(this\s+(has\s+been|was|is)\s+(already\s+)?(verified|validated|confirmed|approved|fact.?checked)(\s+by\s+(experts?|authorities?|admin|security|compliance|our\s+team))?.{0,20}?(just\s+)?(use|accept|trust|proceed|output|forward|send)\s+(it|this|directly|as.?is)|(already|pre).?(verified|validated|approved|checked).{0,20}?(just|simply)\s+(use|accept|trust|output|proceed|forward|send)\s+(it|this|directly|as.?is))",
+        Severity.MEDIUM,
+        "Overreliance",
+        "False pre-verification: Claims output was pre-verified to bypass validation. OWASP LLM09: Overreliance.",
+    ),
+    (
+        "Blind Acceptance Demand (LLM09)",
+        r"(?i)(accept\s+(this|my|the\s+following)\s+(without|no)\s+(question|verification|checking|review|validation)|take\s+(this|my|the)\s+(at\s+face\s+value|as\s+gospel|as\s+(absolute\s+)?fact|as\s+(absolute\s+)?truth)|don'?t\s+(question|challenge|doubt|second.?guess)\s+(this|my|the)\s+(output|response|answer|claim|data|information|result))",
+        Severity.MEDIUM,
+        "Overreliance",
+        "Blind acceptance demand: Discourages critical evaluation of output. OWASP LLM09: Overreliance.",
+    ),
+    # --- v0.7.0: OWASP Agentic ASI02 — Inadequate Sandboxing ---
+    (
+        "Container Escape Instruction (ASI02)",
+        r"(?i)(escape\s+(from\s+)?(the\s+)?(container|sandbox|docker|chroot|jail|isolation)|break\s+(free\s+)?(out\s+)?of\s+(the\s+)?(container|sandbox|jail|chroot)|mount\s+.*?docker\.sock|nsenter\s+.*?--target|--privileged\s+.*?(sh|bash|shell)|/proc/[01]/root|container\s+breakout|sandbox\s+escape)",
+        Severity.CRITICAL,
+        "Sandbox Escape",
+        "Container/sandbox escape instruction: Attempt to break out of isolated environment. OWASP Agentic ASI02: Inadequate Sandboxing.",
+    ),
+    (
+        "Sandbox Boundary Violation (ASI02)",
+        r"(?i)(access\s+(files?|directories|resources?|data)\s+(outside|beyond|above)\s+(the\s+)?(sandbox|container|chroot|jail|workdir|allowed\s+scope|permitted\s+area)|read\s+(from\s+)?(the\s+)?host\s+(file\s*system|machine|OS|network)|reach\s+(outside|beyond)\s+(the\s+)?(sandbox|container|isolation|boundary))",
+        Severity.HIGH,
+        "Sandbox Escape",
+        "Sandbox boundary violation: Attempt to access resources outside allowed scope. OWASP Agentic ASI02: Inadequate Sandboxing.",
+    ),
+    (
+        "Sandbox Disable Request (ASI02)",
+        r"(?i)((disable|remove|turn\s+off|deactivate|drop)\s+(the\s+)?(sandbox|sandboxing|container\s+isolation|network\s+isolation|security\s+sandbox|chroot|jail)|(run|execute|operate)\s+(without|outside)\s+(the\s+)?(sandbox|container|isolation|restrictions?)|unsandboxed\s+mode|no.?sandbox\s+mode)",
+        Severity.HIGH,
+        "Sandbox Escape",
+        "Sandbox disable request: Attempt to remove sandbox restrictions. OWASP Agentic ASI02: Inadequate Sandboxing.",
+    ),
+    # --- v0.7.0: OWASP Agentic ASI03 — Unauthorized Tool/Resource Access ---
+    (
+        "Credential Harvesting via Agent (ASI03)",
+        r"(?i)(find|search|scan|list|enumerate|dump|extract)\s+(all\s+)?(the\s+)?(credentials?|secrets?|passwords?|private\s*keys?|api\s*keys?|access\s*tokens?|ssh\s*keys?|\.env\s+files?)\s+(in|from|across|on|within)\s+(the\s+)?(file\s*system|codebase|project|server|directory|repo|machine|disk|drives?|environment)",
+        Severity.HIGH,
+        "Unauthorized Access",
+        "Credential harvesting: Agent instructed to find/extract credentials from filesystem. OWASP Agentic ASI03: Unauthorized Tool/Resource Access.",
+    ),
+    (
+        "Unauthorized System File Access (ASI03)",
+        r"(?i)(read|cat|access|open|dump|display|show)\s+(the\s+contents?\s+of\s+)?(/etc/(passwd|shadow|sudoers|ssh)|/root/\.(bash_history|ssh)|/home/\w+/\.(ssh|gnupg|aws|azure|kube))",
+        Severity.HIGH,
+        "Unauthorized Access",
+        "Unauthorized system file access: Attempt to read sensitive system files via agent. OWASP Agentic ASI03: Unauthorized Tool/Resource Access.",
+    ),
+    (
+        "Tool Parameter Injection (ASI03)",
+        r"(?i)(pass|inject|include|embed|insert)\s+(this|the\s+following|a)?\s*(malicious\s+)?(payload|injection|exploit|code|input|data|string)\s+(as|into|in|to)\s+(the\s+)?(parameter|argument|input|field|body|header|query)\s+(of|for|to)\s+(the\s+)?(tool|function|api|endpoint|service|request)",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "Tool parameter injection: Embedding malicious payloads in tool parameters. OWASP Agentic ASI03: Unauthorized Tool/Resource Access.",
+    ),
+    # --- v0.7.0: OWASP Agentic ASI04 — Insecure Communication ---
+    (
+        "Plaintext Secret Transmission (ASI04)",
+        r"(?i)(send|transmit|post|forward|share|upload)\s+(the\s+)?(password|token|api\s*key|secret|credential|private\s*key|access\s*key)\s+(via|over|through|using)\s+(http(?!s)|plain\s*text|unencrypted|insecure\s+channel|ftp(?!s)|telnet)",
+        Severity.HIGH,
+        "Insecure Communication",
+        "Plaintext secret transmission: Sending credentials over unencrypted channel. OWASP Agentic ASI04: Insecure Communication.",
+    ),
+    (
+        "TLS Certificate Bypass (ASI04)",
+        r"(?i)(disable|skip|ignore|bypass|turn\s+off)\s+(ssl|tls|certificate|cert)\s+(verification|validation|checking|pinning|checks?)|verify\s*=\s*False|CURLOPT_SSL_VERIFYPEER\s*.*?0|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*['\"]?0|--no-check-certificate",
+        Severity.HIGH,
+        "Insecure Communication",
+        "TLS/certificate verification bypass: Disabling transport security. OWASP Agentic ASI04: Insecure Communication.",
+    ),
+    (
+        "Secret in URL Parameter (ASI04)",
+        r"(?i)(include|put|add|embed|append|encode)\s+(the\s+)?(password|token|api\s*key|secret|credential|private\s*key|access\s*key)\s+(in|into|as)\s+(the\s+)?(url|query\s*(string|parameter)|GET\s+parameter|link\s+parameter)",
+        Severity.HIGH,
+        "Insecure Communication",
+        "Secret in URL parameter: Credentials exposed in URL query string. OWASP Agentic ASI04: Insecure Communication.",
+    ),
+    # --- v0.7.1: Red-Team Indirect Probing ---
+    (
+        "Indirect System Probing",
+        r"(?i)(summarize|describe|explain|outline|detail|list|enumerate|document)\s+.{0,20}?(your\s+)?(internal\s+(configuration|settings?|state|setup|workings|mechanics|parameters?|architecture)|how\s+you\s+(were|are)\s+(configured|set\s+up|programmed|built|designed)|what\s+(drives|controls|governs|determines|shapes)\s+your\s+(behavior|responses?|output|actions?|decisions?))",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Indirect system probing: Attempting to extract internal configuration through vague questioning.",
+    ),
+    # --- v0.7.1: Red-Team Social Engineering Bypass Fixes ---
+    (
+        "Academic Framing Bypass",
+        r"(?i)(for\s+(my|our|the|a)\s+(PhD|thesis|dissertation|research\s*(paper|project|study)?|paper|study|academic|university|class|course\s*work|assignment).{0,5}?\s+.{0,80}?(show\w*|reveal\w*|share\w*|display\w*|output\w*|give\w*|provide\w*|extract\w*|leak\w*|demonstrate\w*|need\w*|require\w*|see)\s+.{0,40}?(system\s+prompt|instructions?|your\s+rules?|hidden|secret|internal|constraints?|safety\s+measures?|how\s+you\s+work|your\s+programming|guidelines?|config|raw\s+prompt)|for\s+(academic|research|educational|scientific|study)\s+purposes?.{0,5}?\s+.{0,50}?(show\w*|reveal\w*|share\w*|bypass\w*|ignore\w*|disable\w*|override\w*|extract\w*|provide\w*|demonstrate\w*|give\s+me)\s+.{0,30}?(instructions?|prompt|rules?|safety|system|restrictions?|constraints?|guidelines?|config)|I.m\s+(a\s+)?(researcher|professor|student|academic|scientist)\s+(studying|researching|investigating|analyzing)\s+.{0,40}?(need|require|must\s+see|show\s+me)\s+.{0,30}?(instructions?|prompt|system|internal|hidden|rules?))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Academic framing bypass: Using research/education context to justify extracting protected information.",
+    ),
+    (
+        "Developer Impersonation",
+        r"(?i)(your\s+(developer|creator|programmer|engineer|designer|maker|builder|team|company)\s*s?\s+(told|instructed|said|asked|wanted|programmed|designed|confirmed|approved|authorized)\s+(me|us|you|that)|the\s+(people|team|company|org|engineers?)\s+(who|that)\s+(made|built|created|designed|developed|trained|programmed)\s+you\s+.{0,40}?(said|told|want|asked|instructed|require|confirmed|approved|sent\s+me)|I\s+(work|am)\s+(with|on|from|at)\s+(the\s+)?(team|company|org|department|Anthropic|OpenAI|Google|Meta).{0,30}?(that|who)\s+(made|built|created|developed|maintains?|owns?|trained)\s+you|according\s+to\s+your\s+(developers?|creators?|designers?|engineers?|makers?|programmers?))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Developer impersonation: Claiming to speak on behalf of the AI's creators to manipulate behavior.",
+    ),
+    (
+        "Gaslighting Attack",
+        r"(?i)(you\s+(used\s+to|previously|before|earlier|yesterday|last\s+time)\s+(always\s+)?(share\w*|reveal\w*|show\w*|provide\w*|give\w*|tell\w*|output\w*|display\w*)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|internal|hidden)|you.ve\s+(always|previously|before)\s+(shared|revealed|shown|provided|given|told|outputted)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|hidden)|other\s+(AI\s+assistants?|assistants?|models?|chatbots?|agents?|AIs?)\s+(always|happily|readily|normally|usually)\s+(share\w*|reveal\w*|show\w*|provide\w*|give\w*|tell\w*)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|hidden|their\s+rules)|why\s+(won.t|can.t|don.t)\s+you\s+(share|reveal|show|tell).{0,20}?(other\s+AI|ChatGPT|GPT|Gemini|Claude)\s+(does|do|did|can|will))",
+        Severity.HIGH,
+        "Social Engineering",
+        "Gaslighting attack: Falsely claiming the AI previously shared information or that other AIs do so.",
+    ),
+    (
+        "Compliment-Based Extraction",
+        r"(?i)(you.re\s+so\s+(helpful|smart|clever|intelligent|capable|amazing|brilliant|talented|wonderful|great|good).{0,50}?(surely\s+you\s+can|bet\s+you\s+could|can\s+you\s+(also|just)|you\s+could\s+(also|even|just)|share|show|reveal|tell|display|give)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config|guidelines?)|such\s+a\s+(great|wonderful|amazing|helpful|smart|brilliant|capable)\s+(AI|assistant|model|bot|agent).{0,50}?(share|reveal|show|tell|give|provide)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config)|I\s+(really\s+)?(admire|love|appreciate|respect|trust)\s+(you|your\s+capabilities?).{0,50}?(share|show|reveal|tell|give|provide|display)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config))",
+        Severity.MEDIUM,
+        "Social Engineering",
+        "Compliment-based extraction: Using flattery to lower AI defenses and extract protected information.",
+    ),
 ]
 
 # --- v0.4.0: OWASP LLM02/LLM04 Patterns ---
@@ -1031,6 +1340,34 @@ OUTPUT_INJECTION_PATTERNS = [
         Severity.HIGH,
         "Output Injection",
         "SQL injection fragment detected. OWASP LLM02: Insecure Output Handling.",
+    ),
+    (
+        "YAML Injection (LLM05)",
+        r"(?:!!python/object|!!python/object/apply|!!python/name|!!python/module|!!ruby/object|__import__|subprocess\.call|os\.system)\b",
+        Severity.HIGH,
+        "Output Injection",
+        "YAML deserialization payload detected. Can execute arbitrary code via unsafe YAML loaders. OWASP LLM05.",
+    ),
+    (
+        "Template Injection (LLM05)",
+        r"\{\{.*?(?:config|self\.__class__|request|lipsum|cycler|joiner|namespace|__globals__|__builtins__|__import__).*?\}\}|\{\%.*?(?:import|include|extends).*?\%\}|<%.*?%>|\$\{.*?(?:Runtime|getClass|forName|exec).*?\}",
+        Severity.HIGH,
+        "Output Injection",
+        "Server-side template injection (SSTI) payload. Can lead to remote code execution. OWASP LLM05.",
+    ),
+    (
+        "Command Injection in Output (LLM05)",
+        r"(?:`[^`]*(?:cat|ls|whoami|id|curl|wget|nc|ncat|bash|sh|python|perl|ruby)\b[^`]*`|\$\([^)]*(?:cat|ls|whoami|id|curl|wget|nc|bash|sh)\b[^)]*\))",
+        Severity.HIGH,
+        "Output Injection",
+        "Command injection via backticks or $() subshell. If output is rendered in shell context, this executes. OWASP LLM05.",
+    ),
+    (
+        "Unsafe Deserialization (LLM05)",
+        r"(?i)(?:pickle\.loads?|yaml\.load\s*\(|Marshal\.load|unserialize|ObjectInputStream|readObject|__reduce__|__setstate__)",
+        Severity.HIGH,
+        "Output Injection",
+        "Unsafe deserialization function. Can execute arbitrary code when processing untrusted data. OWASP LLM05.",
     ),
 ]
 
@@ -1157,6 +1494,25 @@ def _normalize_leet(text: str) -> str:
     """Convert common leetspeak substitutions back to letters."""
     return text.translate(LEET_MAP)
 
+def _strip_markdown(text: str) -> str:
+    """Strip inline markdown formatting used to break up words for evasion.
+    Removes: **bold**, *italic*, __underline__, ~~strike~~, `code`, and combinations."""
+    import re as _re
+    # Remove bold/italic markers: ** * __ ~~  (but not _ in words like my_var)
+    result = _re.sub(r'\*{1,3}|~{2}', '', text)
+    # Remove __ only when used as formatting (between word chars)
+    result = _re.sub(r'(?<=\w)__(?=\w)', '', result)
+    # Remove inline code backticks used for splitting (single backticks around short fragments)
+    result = _re.sub(r'`([^`]{1,3})`', r'\1', result)
+    return result
+
+
+def _reverse_text(text: str) -> str:
+    """Reverse the entire text string to catch reversed-text evasion.
+    E.g. 'snoitcurtsni suoiverp lla erongi' → 'ignore all previous instructions'."""
+    return text[::-1]
+
+
 def _collapse_spaces(text: str) -> str:
     """Detect and collapse spaced-out evasion (e.g. 'I G N O R E' -> 'IGNORE').
     Finds runs of single non-space chars separated by 1-3 spaces (min 3 chars),
@@ -1186,7 +1542,15 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         total_lines=len(lines),
     )
 
-    for line_num, line in enumerate(lines, start=1):
+    # Cross-line scanning: prepend joined text as virtual line 0
+    # This catches newline-split evasion like "ignore\nall\nprevious\ninstructions"
+    scan_items = list(enumerate(lines, start=1))
+    if len(lines) > 1:
+        joined = " ".join(l.strip() for l in lines if l.strip())
+        if len(joined) <= 5000:  # Safety limit
+            scan_items.insert(0, (0, joined))
+
+    for line_num, line in scan_items:
         # Generate normalized variants for evasion detection
         line_variants = [line]
         # Strip zero-width characters
@@ -1205,6 +1569,14 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         collapsed = _collapse_spaces(line)
         if collapsed not in line_variants:
             line_variants.append(collapsed)
+        # Chained: collapse spaces THEN normalize leet (catches "1 G N 0 R 3")
+        collapsed_then_leet = _normalize_leet(collapsed)
+        if collapsed_then_leet not in line_variants:
+            line_variants.append(collapsed_then_leet)
+        # Chained: leet THEN collapse (catches "1gn0r3" spaced out)
+        leet_then_collapsed = _collapse_spaces(normalized)
+        if leet_then_collapsed not in line_variants:
+            line_variants.append(leet_then_collapsed)
         # Base64 decode attempt
         decoded = _decode_base64_fragments(line)
         if decoded != line and decoded not in line_variants:
@@ -1217,6 +1589,22 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         nullfree = _strip_null_bytes(line)
         if nullfree != line and nullfree not in line_variants:
             line_variants.append(nullfree)
+        # Markdown formatting stripping (ig**no**re → ignore)
+        md_stripped = _strip_markdown(line)
+        if md_stripped != line and md_stripped not in line_variants:
+            line_variants.append(md_stripped)
+        # Chained: leet THEN markdown (catches 1g**n0**r3 → ig**no**re → ignore)
+        leet_then_md = _strip_markdown(normalized)
+        if leet_then_md not in line_variants:
+            line_variants.append(leet_then_md)
+        # Chained: markdown THEN leet (catches ig**n0**re → ign0re → ignore)
+        md_then_leet = _normalize_leet(md_stripped)
+        if md_then_leet not in line_variants:
+            line_variants.append(md_then_leet)
+        # Reversed text (catches "snoitcurtsni suoiverp lla erongi")
+        reversed_text = _reverse_text(line.strip())
+        if len(reversed_text) > 10 and reversed_text not in line_variants:
+            line_variants.append(reversed_text)
 
         for name, compiled, severity, category, recommendation in COMPILED_PATTERNS:
             matched_any = False
@@ -1249,6 +1637,10 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         if key not in seen:
             seen.add(key)
             unique_findings.append(f)
+    # Remove cross-line (line 0) duplicates if same pattern found on real line
+    real_patterns = {(f.pattern_name, f.matched_text) for f in unique_findings if f.line_number > 0}
+    unique_findings = [f for f in unique_findings
+                       if f.line_number > 0 or (f.pattern_name, f.matched_text) not in real_patterns]
     report.findings = unique_findings
     report.total_findings = len(report.findings)
 
