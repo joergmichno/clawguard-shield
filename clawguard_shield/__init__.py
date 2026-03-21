@@ -142,7 +142,7 @@ def _build_sarif_results(report: ScanReport) -> list:
                             "uri": report.source,
                         },
                         "region": {
-                            "startLine": finding.line_number,
+                            "startLine": max(finding.line_number, 1),
                             "snippet": {
                                 "text": finding.context,
                             },
