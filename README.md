@@ -3,7 +3,10 @@
 **Security Scanning REST API for AI Agents**
 
 [![CI](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml/badge.svg)](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-262%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-265%20passed-brightgreen)](tests/)
+[![F1](https://img.shields.io/badge/F1-97.3%25-brightgreen)](eval/)
+[![Patterns](https://img.shields.io/badge/patterns-200-blue)](clawguard.py)
+[![Languages](https://img.shields.io/badge/languages-15-blue)](clawguard.py)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/API-live-brightgreen)](https://prompttools.co/api/v1/health)

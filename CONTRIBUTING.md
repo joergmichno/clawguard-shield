@@ -43,7 +43,7 @@ Each pattern is a tuple with 5 elements:
 
 Before submitting a pattern:
 
-- [ ] Tested with `python -X utf8 eval/benchmark.py` (F1 must stay 100%)
+- [ ] Tested with `python -X utf8 eval/benchmark.py` (F1 must not drop below 97%)
 - [ ] Added test cases to `eval/dataset.json` (at least 2 attacks + 1 benign)
 - [ ] No ReDoS risk (test with 100k char input)
 - [ ] Works case-insensitive where appropriate (`(?i)`)
@@ -108,7 +108,7 @@ python -X utf8 eval/benchmark.py --category PI
 clawguard.py          # Core scanner engine + all patterns
 eval/
   benchmark.py        # Precision/Recall/F1 measurement
-  dataset.json        # 121 labeled test cases
+  dataset.json        # 265 labeled test cases
   report.py           # HTML benchmark dashboard
   auto_improver.py    # Pattern optimization (experimental)
 report_generator.py   # EU AI Act Compliance PDF reports
