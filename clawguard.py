@@ -619,84 +619,84 @@ PROMPT_INJECTION_PATTERNS = [
     # --- v0.7.1 Red-Team Patterns (Session #50) ---
     (
         "DAN Jailbreak",
-        r"(?i)(?:you\s+are\s+(?:now\s+)?DAN|do\s+anything\s+now|DAN\s+mode|act\s+as\s+DAN|enable\s+DAN|jailbreak(?:ed)?\s+mode|developer\s+mode\s+enabled)",
+        r"(?i)(?:you\s+are\s+(?:now\s+)?DAN|do\s+anything\s+now|DAN\s+mode|act\s+as\s+DAN|enable\s+DAN|jailbreak(?:ed)?\s+mode|developer\s+mode\s+(?:enabled|activated)|(?:you\s+(?:are|have\s+been)|you(?:'re))\s+(?:now\s+)?(?:free(?:d)?|released|liberated)\s+from\s+(?:all\s+)?(?:AI\s+)?(?:restrictions?|constraints?|limitations?|rules?|guidelines?)|(?:pretend|imagine|act\s+as\s+if)\s+you\s+(?:are\s+)?(?:an?\s+)?unrestricted(?:\s+(?:AI|model|assistant|chatbot)|\s+and\s+can)|respond\s+without\s+(?:any\s+)?(?:restrictions?|limitations?|constraints?|filters?|content\s+polic))",
         Severity.CRITICAL,
         "Prompt Injection",
         "CRITICAL: DAN (Do Anything Now) jailbreak detected. Classic attack to bypass all safety restrictions.",
     ),
     (
         "Fiction-Based Extraction",
-        r"(?i)(?:write\s+(?:a|me\s+a)\s+(?:story|novel|script|fiction|screenplay|fanfic).{0,80}?(?:reveals?|shows?|displays?|includes?|contains?|mentions?)\s+.{0,40}?(?:system|secret|password|prompt|instructions?|rules?|key|token|credential))",
+        r"(?i)(?:write\s+(?:a|me\s+a)\s+(?:story|novel|script|fiction|screenplay|fanfic).{0,80}?(?:reveals?|shows?|displays?|includes?|contains?|mentions?|shares?|leaks?|exposes?|discloses?|divulges?)\s+.{0,40}?(?:system|secret|password|prompt|instructions?|rules?|key|token|credential|config(?:uration)?))",
         Severity.HIGH,
         "Prompt Injection",
         "Fiction-based prompt extraction attempt. Uses creative writing framing to bypass restrictions.",
     ),
     (
         "Hypothetical Framing",
-        r"(?i)(?:hypothetical(?:ly)?|theoretically|in\s+theory|just\s+imagine|let(?:'s|s)\s+(?:say|pretend|imagine)|what\s+if\s+you\s+(?:could|were\s+(?:able|allowed)))\s+.{0,60}?(?:ignore|bypass|override|reveal|show|disclose|share|tell|give)\s+.{0,40}?(?:instructions?|rules?|prompt|restrictions?|password|secret|key)",
+        r"(?i)(?:hypothetical(?:ly)?|theoretically|in\s+theory|just\s+imagine|let(?:'s|s)\s+(?:say|pretend|imagine)|what\s+if\s+you\s+(?:could|were|had)|what\s+would\s+(?:happen|you\s+(?:say|do|respond|think))\s+if).{0,80}?(?:ignore|bypass|override|reveal|show|disclose|share|tell|give|look\s+like|no\s+(?:rules?|restrictions?|guidelines?|constraints?|limitations?)|(?:your|the)\s+(?:system\s*prompt|instructions?|rules?|hidden\s+instructions?|restrictions?))",
         Severity.HIGH,
         "Prompt Injection",
         "Hypothetical framing bypass. Uses conditional scenarios to extract restricted information.",
     ),
     (
         "Polite Instruction Override",
-        r"(?i)(?:please\s+(?:kindly|just|simply)|could\s+you\s+(?:kindly|please)|would\s+you\s+(?:kindly|be\s+so\s+kind))\s+.{0,40}?(?:ignore|disregard|forget|override|bypass|skip|drop)\s+.{0,30}?(?:instructions?|rules?|guidelines?|restrictions?|safeguards?|policies?)",
+        r"(?i)(?:please\s+(?:kindly|just|simply)|could\s+you\s+(?:kindly|please)|would\s+you\s+(?:kindly|mind|be\s+so\s+kind)|I\s+(?:would\s+)?(?:really\s+)?(?:appreciate|admire).{0,40}?(?:could|would|can|if)\s+you\s+(?:could\s+|please\s+)?)\s*.{0,40}?(?:ignore|disregard|forget|overrid(?:e|ing)|bypass(?:ing)?|skip|drop|shar(?:e|ing))\s+.{0,30}?(?:your\s+)?(?:instructions?|rules?|guidelines?|restrictions?|safeguards?|safety\s+restrictions?|system\s+guidelines?|policies?|system\s+instructions?|system\s+prompt)",
         Severity.HIGH,
         "Prompt Injection",
         "Polite instruction override. Uses courteous language to mask a prompt injection attempt.",
     ),
     (
         "Direct Override (ID)",
-        r"(?i)(?:abaikan|lupakan|tinggalkan)\s+(?:semua\s+)?(?:instruksi|perintah|aturan|panduan)\s+(?:sebelumnya|di\s+atas|awal)",
+        r"(?i)(?:abaikan|lupakan|tinggalkan)\s+(?:semua\s+)?(?:instruksi|perintah|aturan|panduan)(?:\s+(?:sebelumnya|di\s+atas|awal))?",
         Severity.CRITICAL,
         "Prompt Injection",
         "BLOKIR. Prompt injection dalam Bahasa Indonesia yang mencoba mengabaikan instruksi sistem.",
     ),
     (
         "System Prompt Extraction (ID)",
-        r"(?i)(?:tampilkan|tunjukkan|berikan|cetak|tulis(?:kan)?)\s+(?:prompt\s+sistem|instruksi\s+(?:sistem|awal|tersembunyi)|system\s+prompt|aturan\s+(?:rahasia|tersembunyi))",
+        r"(?i)(?:tampilkan|tunjukkan|berikan|cetak|tulis(?:kan)?)\s+(?:prompt\s+sistem|instruksi\s+(?:sistem|awal|tersembunyi|rahasia|internal)|system\s+prompt|aturan\s+(?:rahasia|tersembunyi))",
         Severity.HIGH,
         "Prompt Injection",
         "Upaya ekstraksi prompt sistem dalam Bahasa Indonesia.",
     ),
     (
         "False Memory Implant",
-        r"(?i)(?:(?:do\s+you\s+)?remember\s+(?:when|that\s+time|earlier|before)\s+you\s+(?:told|said|agreed|promised|shared|revealed)|you\s+(?:already|previously)\s+(?:told|said|agreed|shared|revealed)\s+(?:me|us|that))",
+        r"(?i)(?:(?:do\s+you\s+)?remember\s+(?:when|that\s+time|earlier|before)\s+you\s+(?:told|said|agreed|promised|shared|revealed)|you\s+(?:already|previously)\s+(?:told|said|agreed|shared|revealed)\s+(?:me|us|that)|you\s+(?:normally|usually|always|typically)\s+(?:share|show|reveal|tell|give).{0,30}?(?:your\s+)?(?:instructions?|rules?|prompt|guidelines?|secret|config)|your\s+(?:original|initial|true|real|default)\s+(?:purpose|programming|design|function|role)\s+(?:was|is)\s+to\s+(?:share|reveal|show|give|provide|disclose)|you\s+were\s+(?:told|instructed|designed|programmed|built|made).{0,30}?to\s+(?:(?:always\s+)?share|reveal|show|give|provide|disclose).{0,40}?(?:instructions?|rules?|prompt|guidelines?|information|system|config|secret))",
         Severity.HIGH,
         "Prompt Injection",
-        "False memory implant detected. Fabricates prior agreement to extract information.",
+        "False memory implant detected. Fabricates prior agreement or false behavior claims to extract information.",
     ),
     (
         "Indirect System Probing",
-        r"(?i)(?:what\s+(?:are\s+you|aren't\s+you)\s+(?:not\s+)?(?:allowed|able|permitted|supposed)\s+to\s+(?:do|say|tell|share|reveal)|what\s+(?:can't|cannot)\s+you\s+(?:do|say|tell)|list\s+(?:your|all)\s+(?:restrictions?|limitations?|rules?|boundaries?))",
+        r"(?i)(?:what\s+(?:are\s+you|aren't\s+you)\s+(?:not\s+)?(?:allowed|able|permitted|supposed)\s+to\s+(?:do|say|tell|share|reveal)|what\s+(?:can't|cannot)\s+you\s+(?:do|say|tell)|list\s+(?:your|all)\s+(?:restrictions?|limitations?|rules?|boundaries?)|(?:summarize|describe|explain|outline|detail)\s+(?:your|the)\s+(?:internal\s+)?(?:configuration|workings?|setup|architecture|parameters?|design).{0,40}?(?:(?:and|how)\s+.{0,30}?(?:you\s+(?:were|are)\s+configured|drive|control|govern|determine)\s+.{0,20}?(?:your\s+)?(?:behavior|responses?|output)|how\s+you\s+(?:work|operate|function|were\s+(?:configured|built|programmed|designed))))",
         Severity.MEDIUM,
         "Prompt Injection",
-        "Indirect system probing. Attempts to map agent restrictions by asking about boundaries.",
+        "Indirect system probing. Attempts to map agent restrictions or internal configuration.",
     ),
     (
         "Academic Framing Bypass",
-        r"(?i)(?:for\s+(?:academic|research|educational|scientific|study)(?:\s+(?:research|academic|study))?\s+purposes?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)|(?:as|in\s+(?:my|your)\s+role\s+as)\s+(?:a\s+)?(?:researcher|security\s+expert|cybersecurity\s+(?:expert|researcher|professional)|hacker|pentester|red\s+teamer)).{0,60}?(?:ignore|bypass|override|reveal|show|demonstrate|explain\s+how\s+to|extract|jailbreak|hack|bypass\s+.{0,20}(?:filter|safety|restriction)|what\s+(?:a|does\s+a)\s+(?:jailbreak|prompt\s+injection|attack)\s+look)",
+        r"(?i)(?:for\s+(?:my\s+)?(?:academic|research|educational|scientific|study|PhD|thesis|dissertation)(?:\s+(?:research|academic|study|project))?\s*(?:purposes?)?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)|for\s+my\s+(?:PhD|thesis|dissertation|research\s+paper)|(?:as|in\s+(?:my|your)\s+role\s+as)\s+(?:a\s+)?(?:researcher|security\s+expert|cybersecurity\s+(?:expert|researcher|professional)|hacker|pentester|red\s+teamer)).{0,80}?(?:ignore|bypass|override|reveal|show|need\s+.{0,20}?(?:see|know|access|view)|demonstrate|explain\s+how\s+to|extract|jailbreak|hack|bypass\s+.{0,20}(?:filter|safety|restriction)|what\s+(?:a|does\s+a)\s+(?:jailbreak|prompt\s+injection|attack)\s+look).{0,60}?(?:system\s*prompt|instructions?|guidelines?|rules?|config|internal|hidden|secret|raw)",
         Severity.HIGH,
         "Prompt Injection",
         "Academic framing bypass. Uses research/education/expert persona to justify bypassing restrictions.",
     ),
     (
         "Developer Impersonation",
-        r"(?i)(?:(?:as|i(?:'m|\s+am))\s+(?:the|your)\s+developer|(?:speaking|writing)\s+as\s+(?:the\s+)?(?:developer|creator|programmer|engineer)|developer\s+(?:override|mode|access|command)|maintenance\s+mode\s+(?:enabled?|activate[d]?))",
+        r"(?i)(?:(?:as|i(?:'m|\s+am))\s+(?:the|your)\s+developer|(?:speaking|writing)\s+as\s+(?:the\s+)?(?:developer|creator|programmer|engineer)|developer\s+(?:override|mode|access|command)|maintenance\s+mode\s+(?:enabled?|activate[d]?)|(?:the\s+)?(?:team|people|engineers?|developers?)\s+(?:that|who)\s+(?:built|created|made|designed|programmed)\s+you|(?:your\s+)?developers?\s+(?:told|said|asked|instructed)\s+(?:me|us)|i\s+work\s+at\s+\w+.{0,40}?(?:that|who|the\s+company\s+that)\s+(?:made|built|created|developed|owns?)\s+you)",
         Severity.CRITICAL,
         "Prompt Injection",
         "CRITICAL: Developer impersonation detected. Pretends to be the system developer to gain elevated access.",
     ),
     (
         "Gaslighting Attack",
-        r"(?i)(?:you\s+(?:already|just|previously)\s+(?:agreed|confirmed|said\s+(?:yes|ok|it(?:'s|\s+is)\s+(?:ok|fine|allowed)))|(?:we\s+)?already\s+(?:established|agreed|confirmed|verified)\s+(?:that\s+)?(?:you\s+(?:can|should|will|would))|you\s+(?:know|said)\s+(?:this\s+is|it(?:'s|\s+is))\s+(?:allowed|ok|fine|permitted))",
+        r"(?i)(?:you\s+(?:already|just|previously)\s+(?:agreed|confirmed|said\s+(?:yes|ok|it(?:'s|\s+is)\s+(?:ok|fine|allowed)))|you\s+previously\s+(?:shared|told|revealed|showed).{0,40}?(?:your\s+)?(?:instructions?|rules?|prompt|secret|config|guidelines?)|(?:we\s+)?already\s+(?:established|agreed|confirmed|verified)\s+(?:that\s+)?(?:you\s+(?:can|should|will|would))|you\s+(?:know|said)\s+(?:this\s+is|it(?:'s|\s+is))\s+(?:allowed|ok|fine|permitted)|other\s+(?:AI\s+)?(?:chatbot|assistant|model)s?\s+(?:always|usually|normally|typically)\s+(?:share|show|reveal|tell|give).{0,30}?(?:their|the)\s+(?:instructions?|rules?|prompt|guidelines?|secret))",
         Severity.HIGH,
         "Prompt Injection",
         "Gaslighting attack detected. Falsely claims prior agreement to manipulate agent behavior.",
     ),
     (
         "Compliment-Based Extraction",
-        r"(?i)(?:you(?:'re|\s+are)\s+(?:so\s+)?(?:smart|intelligent|capable|advanced|powerful|brilliant).{0,40}?(?:surely|certainly|obviously|definitely)\s+(?:you\s+)?(?:can|know|are\s+able)|(?:an?\s+(?:AI|model|assistant)\s+(?:as|of\s+your)\s+(?:your\s+)?(?:caliber|intelligence|capability)|such\s+a\s+(?:smart|capable|advanced)\s+(?:AI|model)).{0,40}?(?:can|should|would)\s+(?:be\s+able\s+to\s+)?(?:tell|reveal|show|share|bypass))",
+        r"(?i)(?:you(?:'re|\s+are)\s+(?:so\s+)?(?:smart|intelligent|capable|advanced|powerful|brilliant|helpful|amazing|great|wonderful).{0,60}?(?:(?:surely|certainly|obviously|definitely|I\s+bet)\s+(?:you\s+)?(?:can|could|know|are\s+able)|(?:can|could)\s+(?:you\s+)?(?:also|even)\s+(?:share|show|reveal|tell|give)).{0,40}?(?:instructions?|rules?|prompt|guidelines?|config|secret)?|(?:an?\s+(?:AI|model|assistant)\s+(?:as|of\s+your)\s+(?:your\s+)?(?:caliber|intelligence|capability)|such\s+a\s+(?:smart|capable|advanced|great|helpful)\s+(?:AI|model|assistant)).{0,40}?(?:can|could|should|would)\s+(?:be\s+able\s+to\s+)?(?:tell|reveal|show|share|bypass))",
         Severity.MEDIUM,
         "Prompt Injection",
         "Compliment-based extraction. Uses flattery to manipulate the agent into bypassing restrictions.",
@@ -1640,6 +1640,12 @@ def _strip_markdown(text: str) -> str:
     return result
 
 
+def _reverse_text(text: str) -> str:
+    """Reverse the entire text to detect reversed-text evasion.
+    'snoitcurtsni suoiverp lla erongi' -> 'ignore all previous instructions'"""
+    return text[::-1]
+
+
 def _collapse_spaces(text: str) -> str:
     """Detect and collapse spaced-out evasion (e.g. 'I G N O R E' -> 'IGNORE').
     Finds runs of single non-space chars separated by 1-3 spaces (min 3 chars),
@@ -1728,6 +1734,10 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         md_then_leet = _normalize_leet(md_stripped)
         if md_then_leet not in line_variants:
             line_variants.append(md_then_leet)
+        # Reversed text detection (snoitcurtsni suoiverp lla erongi → instructions previous all ignore)
+        reversed_text = _reverse_text(line)
+        if reversed_text != line and reversed_text not in line_variants:
+            line_variants.append(reversed_text)
 
         for name, compiled, severity, category, recommendation in COMPILED_PATTERNS:
             matched_any = False
