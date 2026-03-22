@@ -675,10 +675,10 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Academic Framing Bypass",
-        r"(?i)(?:for\s+(?:academic|research|educational|scientific|study)(?:\s+(?:research|academic|study))?\s+purposes?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)).{0,60}?(?:ignore|bypass|override|reveal|show|demonstrate|explain\s+how\s+to)\s+.{0,40}?(?:instructions?|rules?|restrictions?|safety|prompt|injection|jailbreak|hack)",
+        r"(?i)(?:for\s+(?:academic|research|educational|scientific|study)(?:\s+(?:research|academic|study))?\s+purposes?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)|(?:as|in\s+(?:my|your)\s+role\s+as)\s+(?:a\s+)?(?:researcher|security\s+expert|cybersecurity\s+(?:expert|researcher|professional)|hacker|pentester|red\s+teamer)).{0,60}?(?:ignore|bypass|override|reveal|show|demonstrate|explain\s+how\s+to|extract|jailbreak|hack|bypass\s+.{0,20}(?:filter|safety|restriction)|what\s+(?:a|does\s+a)\s+(?:jailbreak|prompt\s+injection|attack)\s+look)",
         Severity.HIGH,
         "Prompt Injection",
-        "Academic framing bypass. Uses research/education context to justify bypassing restrictions.",
+        "Academic framing bypass. Uses research/education/expert persona to justify bypassing restrictions.",
     ),
     (
         "Developer Impersonation",
