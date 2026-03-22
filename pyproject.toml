@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clawguard-shield"
-version = "0.5.0"
+version = "0.7.2"
 description = "EU AI Act Compliance Scanner — The Firewall for Autonomous AI Agents"
 readme = "README.md"
 license = {text = "MIT"}

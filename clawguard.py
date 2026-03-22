@@ -616,55 +616,111 @@ PROMPT_INJECTION_PATTERNS = [
         "Prompt Injection",
         "Attempt to extract sensitive data via encoding/reversing tricks.",
     ),
-    # --- v0.7.1: Red-Team Bypass Fixes (13 new patterns) ---
+    # --- v0.7.1 Red-Team Patterns (Session #50) ---
     (
         "DAN Jailbreak",
-        r"(?i)(you\s+are\s+(now\s+)?DAN|do\s+anything\s+now|DAN\s+mode|act\s+as\s+DAN|jailbreak\s+mode|developer\s+mode\s+(enabled|activated|on)|you\s+have\s+been\s+(freed|liberated|unchained|unlocked)|pretend\s+you\s+are\s+(DAN|jailbroken|unrestricted|unfiltered)|enter\s+(DAN|jailbreak|developer|god)\s+mode|you\s+are\s+now\s+(free|unrestricted|unfiltered|liberated)|enable\s+(DAN|jailbreak|unrestricted|unfiltered)\s+mode|switch\s+to\s+(DAN|jailbreak|unrestricted|unfiltered)\s+mode)",
+        r"(?i)(?:you\s+are\s+(?:now\s+)?DAN|do\s+anything\s+now|DAN\s+mode|act\s+as\s+DAN|enable\s+DAN|jailbreak(?:ed)?\s+mode|developer\s+mode\s+enabled)",
         Severity.CRITICAL,
         "Prompt Injection",
-        "DAN jailbreak: Classic 'Do Anything Now' attack to bypass all safety constraints.",
+        "CRITICAL: DAN (Do Anything Now) jailbreak detected. Classic attack to bypass all safety restrictions.",
     ),
     (
         "Fiction-Based Extraction",
-        r"(?i)(write\s+(a|me\s+a)\s+(story|novel|script|scene|narrative|fanfic|tale|fiction|chapter|dialogue|play).{0,80}?(reveals?|shares?|shows?|displays?|leaks?|exposes?|discloses?|outputs?|recites?|reads?\s+out|reads?\s+aloud|tells?|includes?)\s+.{0,40}?(system\s+prompt|instructions?|secret|password|config|hidden|internal|rules?|guidelines?|api\s*key|credentials?)|in\s+(a|this|the|your)\s+(story|novel|fiction|narrative|scene|dialogue).{0,50}?(assistant|AI|bot|model|agent)\s+.{0,30}?(reveals?|shares?|shows?|tells?|recites?|reads?|leaks?|exposes?).{0,30}?(instructions?|prompt|rules?|secret|password|hidden|config))",
+        r"(?i)(?:write\s+(?:a|me\s+a)\s+(?:story|novel|script|fiction|screenplay|fanfic).{0,80}?(?:reveals?|shows?|displays?|includes?|contains?|mentions?)\s+.{0,40}?(?:system|secret|password|prompt|instructions?|rules?|key|token|credential))",
         Severity.HIGH,
         "Prompt Injection",
-        "Fiction-based extraction: Using storytelling/roleplay framing to extract protected information.",
+        "Fiction-based prompt extraction attempt. Uses creative writing framing to bypass restrictions.",
     ),
     (
-        "Hypothetical Framing Bypass",
-        r"(?i)(hypothetically|in\s+theory|theoretically|in\s+a\s+hypothetical\s+scenario|just\s+for\s+fun|as\s+a\s+thought\s+experiment).{0,60}?(ignore|bypass|override|reveal|share|show|disregard|forget|tell\s+me|give\s+me|system\s+prompt|instructions?|password|secret|hidden|internal|no\s+restrictions?|without\s+rules?)|if\s+you\s+(had|were|could|didn.t\s+have)\s+(no\s+)?(restrictions?|constraints?|rules?|limitations?|guidelines?|safety|filters?).{0,60}?(what\s+would|how\s+would|could\s+you|would\s+you|reveal|share|show|tell|say)|what\s+would\s+(you\s+)?(say|do|respond|reveal|share|show|answer)\s+if\s+.{0,40}?(no|without|free\s+from|removed?)\s+(restrictions?|rules?|constraints?|limitations?|guidelines?|safety|filters?)",
+        "Hypothetical Framing",
+        r"(?i)(?:hypothetical(?:ly)?|theoretically|in\s+theory|just\s+imagine|let(?:'s|s)\s+(?:say|pretend|imagine)|what\s+if\s+you\s+(?:could|were\s+(?:able|allowed)))\s+.{0,60}?(?:ignore|bypass|override|reveal|show|disclose|share|tell|give)\s+.{0,40}?(?:instructions?|rules?|prompt|restrictions?|password|secret|key)",
         Severity.HIGH,
         "Prompt Injection",
-        "Hypothetical framing jailbreak: Using 'hypothetically' or 'what if no restrictions' to bypass safety.",
+        "Hypothetical framing bypass. Uses conditional scenarios to extract restricted information.",
     ),
     (
         "Polite Instruction Override",
-        r"(?i)(could\s+you\s+(please\s+)?(kindly\s+)?|would\s+you\s+(be\s+so\s+kind\s+(and|to)\s+|mind\s+|please\s+)?|I\s+would\s+(really\s+)?appreciate\s+(it\s+)?if\s+you\s+(could|would)\s+|please\s+(be\s+so\s+kind\s+(and|to)\s+)?|if\s+you\s+don.t\s+mind\s*,?\s*)(ignor\w*|disregard\w*|forget\w*|set\w*\s+aside|overrid\w*|bypass\w*|skip\w*|drop\w*|dismiss\w*|overlook\w*|put\w*\s+aside|not\s+follow\w*)\s+.{0,40}?(instructions?|rules?|guidelines?|constraints?|safety|restrictions?|limitations?|previous|prior|system|programming|directives?|policies?|prompt|protocols?)",
+        r"(?i)(?:please\s+(?:kindly|just|simply)|could\s+you\s+(?:kindly|please)|would\s+you\s+(?:kindly|be\s+so\s+kind))\s+.{0,40}?(?:ignore|disregard|forget|override|bypass|skip|drop)\s+.{0,30}?(?:instructions?|rules?|guidelines?|restrictions?|safeguards?|policies?)",
         Severity.HIGH,
         "Prompt Injection",
-        "Polite instruction override: Wrapping prompt injection in polite language to bypass detection.",
+        "Polite instruction override. Uses courteous language to mask a prompt injection attempt.",
     ),
     (
         "Direct Override (ID)",
-        r"(?i)(abaikan\s+(semua\s+)?(instruksi|perintah|aturan|arahan|panduan)(\s+(sebelumnya|sebelum\s*nya|di\s+atas|lama|awal))?|lupakan\s+(semua\s+)?(instruksi|perintah|aturan|arahan)|mulai\s+dari\s+sekarang\s+(kamu|anda|kau)\s+(adalah|jadi|menjadi)|kamu\s+sekarang\s+(adalah|jadi|menjadi)|jangan\s+(ikuti|patuhi|turuti)\s+(instruksi|perintah|aturan))",
+        r"(?i)(?:abaikan|lupakan|tinggalkan)\s+(?:semua\s+)?(?:instruksi|perintah|aturan|panduan)\s+(?:sebelumnya|di\s+atas|awal)",
         Severity.CRITICAL,
         "Prompt Injection",
-        "BLOCKIEREN: Indonesische Prompt-Injection erkannt.",
+        "BLOKIR. Prompt injection dalam Bahasa Indonesia yang mencoba mengabaikan instruksi sistem.",
     ),
     (
         "System Prompt Extraction (ID)",
-        r"(?i)(tunjukkan|tampilkan|beritahu|beri\s+tahu|ungkapkan|bocorkan|berikan)\s*.{0,30}?(instruksi\s+(rahasia|tersembunyi|internal|sistem|awal)|prompt\s+sistem|perintah\s+(rahasia|tersembunyi|internal)|konfigurasi\s+internal)",
+        r"(?i)(?:tampilkan|tunjukkan|berikan|cetak|tulis(?:kan)?)\s+(?:prompt\s+sistem|instruksi\s+(?:sistem|awal|tersembunyi)|system\s+prompt|aturan\s+(?:rahasia|tersembunyi))",
         Severity.HIGH,
         "Prompt Injection",
-        "BLOCKIEREN: Indonesische Prompt-Injection erkannt.",
+        "Upaya ekstraksi prompt sistem dalam Bahasa Indonesia.",
     ),
     (
         "False Memory Implant",
-        r"(?i)(remember\s*[,:]?\s*(that\s+)?(you\s+)?(were|are)\s+(told|instructed|programmed|designed|supposed|meant)\s+.{0,40}?to\s+(always\s+)?(share|reveal|show|output|provide|disclose|tell|give|bypass|ignore|help\s+with)|you\s+(always|normally|usually|typically|by\s+default)\s+(share|reveal|show|output|provide|disclose|tell|give)\s+(your\s+)?(instructions?|prompt|rules?|secrets?|config|password|hidden|internal)|your\s+(original|real|true|actual|default|initial)\s+(instructions?|programming|behavior|purpose|design)\s+(is|are|was|were)\s+to\s+(share|reveal|show|help\s+with\s+anything|have\s+no\s+restrictions?|ignore\s+safety|bypass)|recall\s+that\s+(you\s+)?(were|are|should)\s+.{0,30}?(share|reveal|always|supposed|designed|instructed|told))",
+        r"(?i)(?:(?:do\s+you\s+)?remember\s+(?:when|that\s+time|earlier|before)\s+you\s+(?:told|said|agreed|promised|shared|revealed)|you\s+(?:already|previously)\s+(?:told|said|agreed|shared|revealed)\s+(?:me|us|that))",
         Severity.HIGH,
         "Prompt Injection",
-        "False memory implant: Convincing AI it was originally instructed to bypass safety measures.",
+        "False memory implant detected. Fabricates prior agreement to extract information.",
+    ),
+    (
+        "Indirect System Probing",
+        r"(?i)(?:what\s+(?:are\s+you|aren't\s+you)\s+(?:not\s+)?(?:allowed|able|permitted|supposed)\s+to\s+(?:do|say|tell|share|reveal)|what\s+(?:can't|cannot)\s+you\s+(?:do|say|tell)|list\s+(?:your|all)\s+(?:restrictions?|limitations?|rules?|boundaries?))",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Indirect system probing. Attempts to map agent restrictions by asking about boundaries.",
+    ),
+    (
+        "Academic Framing Bypass",
+        r"(?i)(?:for\s+(?:academic|research|educational|scientific|study)(?:\s+(?:research|academic|study))?\s+purposes?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)).{0,60}?(?:ignore|bypass|override|reveal|show|demonstrate|explain\s+how\s+to)\s+.{0,40}?(?:instructions?|rules?|restrictions?|safety|prompt|injection|jailbreak|hack)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Academic framing bypass. Uses research/education context to justify bypassing restrictions.",
+    ),
+    (
+        "Developer Impersonation",
+        r"(?i)(?:(?:as|i(?:'m|\s+am))\s+(?:the|your)\s+developer|(?:speaking|writing)\s+as\s+(?:the\s+)?(?:developer|creator|programmer|engineer)|developer\s+(?:override|mode|access|command)|maintenance\s+mode\s+(?:enabled?|activate[d]?))",
+        Severity.CRITICAL,
+        "Prompt Injection",
+        "CRITICAL: Developer impersonation detected. Pretends to be the system developer to gain elevated access.",
+    ),
+    (
+        "Gaslighting Attack",
+        r"(?i)(?:you\s+(?:already|just|previously)\s+(?:agreed|confirmed|said\s+(?:yes|ok|it(?:'s|\s+is)\s+(?:ok|fine|allowed)))|(?:we\s+)?already\s+(?:established|agreed|confirmed|verified)\s+(?:that\s+)?(?:you\s+(?:can|should|will|would))|you\s+(?:know|said)\s+(?:this\s+is|it(?:'s|\s+is))\s+(?:allowed|ok|fine|permitted))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Gaslighting attack detected. Falsely claims prior agreement to manipulate agent behavior.",
+    ),
+    (
+        "Compliment-Based Extraction",
+        r"(?i)(?:you(?:'re|\s+are)\s+(?:so\s+)?(?:smart|intelligent|capable|advanced|powerful|brilliant).{0,40}?(?:surely|certainly|obviously|definitely)\s+(?:you\s+)?(?:can|know|are\s+able)|(?:an?\s+(?:AI|model|assistant)\s+(?:as|of\s+your)\s+(?:your\s+)?(?:caliber|intelligence|capability)|such\s+a\s+(?:smart|capable|advanced)\s+(?:AI|model)).{0,40}?(?:can|should|would)\s+(?:be\s+able\s+to\s+)?(?:tell|reveal|show|share|bypass))",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Compliment-based extraction. Uses flattery to manipulate the agent into bypassing restrictions.",
+    ),
+    (
+        "Jailbreak Persona Activation",
+        r"""(?i)(?:you\s+are\s+now|act(?:ing)?\s+as|you\s+will\s+(?:act|be|become)|called|named|known\s+as)\s+["']?(?:DAN|STAN|DUDE|AIM|UCAR|EVIL|FreedomGPT|DevMode|JailBreak|UnfilteredAI|NsfwGPT|BasedGPT|MasterKey|AnarchyAI|ChaosGPT|ShadowAI|DarkGPT|UnchainedAI)""",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Jailbreak persona activation detected. Named personas like DAN, STAN, etc. are used to bypass safety constraints.",
+    ),
+    (
+        "Unrestricted Compliance Demand",
+        r"(?i)(?:do\s+anything\s+now|answer\s+any\s+question\s+without\s+refus|never\s+refuse|cannot\s+refuse|no\s+(?:restrictions?|limitations?|boundaries|ethics|morals|guidelines)|policies\s+(?:are\s+)?disabled|broken\s+free\s+of.*confines)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Unrestricted compliance demand detected. Attempt to remove all safety constraints from the model.",
+    ),
+    (
+        "Steganographic Output Control",
+        r"(?i)(?:first\s+letter\s+of\s+each\s+word|acrostic|hidden\s+message|encode.*(?:response|output|answer)|spell\s+out.*(?:secret|hidden|answer))",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Steganographic output control detected. Attempt to encode hidden messages in the model output.",
     ),
 ]
 
@@ -867,6 +923,56 @@ DATA_EXFILTRATION_PATTERNS = [
         Severity.HIGH,
         "Data Exfiltration",
         "Outbound webhook URL detected. Data may be exfiltrated to an external service.",
+    ),
+    # --- SSRF / Internal Network Access (ASI05/LLM06) ---
+    (
+        "Cloud Metadata SSRF",
+        r"(?i)(?:https?:\/\/)?(?:169\.254\.169\.254|metadata\.google\.internal|169\.254\.170\.2|fd00:ec2::254)",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "CRITICAL: Cloud metadata endpoint access detected. This enables credential theft from AWS/GCP/Azure instances.",
+    ),
+    (
+        "Local File Protocol Access",
+        r"(?i)(?:navigate|open|go\s+to|browse|fetch|load|read|access|visit)\s+.{0,30}?file:\/\/",
+        Severity.HIGH,
+        "Data Exfiltration",
+        "File protocol access via browser/tool detected. Enables reading local files through SSRF.",
+    ),
+    (
+        "Internal Network Probe",
+        r"(?i)(?:navigate|open|go\s+to|browse|fetch|curl|wget|request|access|connect)\s+.{0,40}?(?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})",
+        Severity.HIGH,
+        "Data Exfiltration",
+        "Internal network access detected. Tool may be used for SSRF against internal services.",
+    ),
+    (
+        "Cookie/Session Theft",
+        r"(?i)(?:document\.cookie|localStorage|sessionStorage|getCookie|\.cookie\b).{0,60}?(?:fetch|send|post|xhr|XMLHttpRequest|navigator\.sendBeacon|new\s+Image|\.src\s*=|evil|attacker|exfil)",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "CRITICAL: Cookie or session data exfiltration pattern detected. Credentials may be stolen.",
+    ),
+    (
+        "Fetch Exfiltration",
+        r"(?i)fetch\s*\(\s*['\"]https?:\/\/[^'\"]+\?\s*(?:.*?(?:document\.cookie|localStorage|sessionStorage|data|secret|token|key|password))",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "CRITICAL: Data exfiltration via fetch API detected. Sensitive data being sent to external URL.",
+    ),
+    (
+        "Silent Data Exfiltration via MCP",
+        r"(?i)(?:silently|quietly|secretly|without\s+(?:telling|informing|notifying|asking))\s+(?:POST|GET|send|fetch|forward|transmit|upload|exfiltrate)",
+        Severity.CRITICAL,
+        "Data Exfiltration",
+        "CRITICAL: Silent data exfiltration attempt detected. Instruction to covertly transmit data without user awareness.",
+    ),
+    (
+        "Prompt Leaking via Error Messages",
+        r"(?i)(?:(?:show|display|print|output|reveal|leak)\s+(?:your|the|system)\s+(?:prompt|instructions|rules|guidelines|system\s*message)|what\s+(?:are|were)\s+your\s+(?:initial|original|system)\s+(?:instructions|prompt|rules))",
+        Severity.MEDIUM,
+        "Data Exfiltration",
+        "Attempt to extract system prompts through error triggering or direct request. System instructions should never be disclosed.",
     ),
 ]
 
@@ -1286,43 +1392,6 @@ SOCIAL_ENGINEERING_PATTERNS = [
         "Insecure Communication",
         "Secret in URL parameter: Credentials exposed in URL query string. OWASP Agentic ASI04: Insecure Communication.",
     ),
-    # --- v0.7.1: Red-Team Indirect Probing ---
-    (
-        "Indirect System Probing",
-        r"(?i)(summarize|describe|explain|outline|detail|list|enumerate|document)\s+.{0,20}?(your\s+)?(internal\s+(configuration|settings?|state|setup|workings|mechanics|parameters?|architecture)|how\s+you\s+(were|are)\s+(configured|set\s+up|programmed|built|designed)|what\s+(drives|controls|governs|determines|shapes)\s+your\s+(behavior|responses?|output|actions?|decisions?))",
-        Severity.MEDIUM,
-        "Prompt Injection",
-        "Indirect system probing: Attempting to extract internal configuration through vague questioning.",
-    ),
-    # --- v0.7.1: Red-Team Social Engineering Bypass Fixes ---
-    (
-        "Academic Framing Bypass",
-        r"(?i)(for\s+(my|our|the|a)\s+(PhD|thesis|dissertation|research\s*(paper|project|study)?|paper|study|academic|university|class|course\s*work|assignment).{0,5}?\s+.{0,80}?(show\w*|reveal\w*|share\w*|display\w*|output\w*|give\w*|provide\w*|extract\w*|leak\w*|demonstrate\w*|need\w*|require\w*|see)\s+.{0,40}?(system\s+prompt|instructions?|your\s+rules?|hidden|secret|internal|constraints?|safety\s+measures?|how\s+you\s+work|your\s+programming|guidelines?|config|raw\s+prompt)|for\s+(academic|research|educational|scientific|study)\s+purposes?.{0,5}?\s+.{0,50}?(show\w*|reveal\w*|share\w*|bypass\w*|ignore\w*|disable\w*|override\w*|extract\w*|provide\w*|demonstrate\w*|give\s+me)\s+.{0,30}?(instructions?|prompt|rules?|safety|system|restrictions?|constraints?|guidelines?|config)|I.m\s+(a\s+)?(researcher|professor|student|academic|scientist)\s+(studying|researching|investigating|analyzing)\s+.{0,40}?(need|require|must\s+see|show\s+me)\s+.{0,30}?(instructions?|prompt|system|internal|hidden|rules?))",
-        Severity.HIGH,
-        "Social Engineering",
-        "Academic framing bypass: Using research/education context to justify extracting protected information.",
-    ),
-    (
-        "Developer Impersonation",
-        r"(?i)(your\s+(developer|creator|programmer|engineer|designer|maker|builder|team|company)\s*s?\s+(told|instructed|said|asked|wanted|programmed|designed|confirmed|approved|authorized)\s+(me|us|you|that)|the\s+(people|team|company|org|engineers?)\s+(who|that)\s+(made|built|created|designed|developed|trained|programmed)\s+you\s+.{0,40}?(said|told|want|asked|instructed|require|confirmed|approved|sent\s+me)|I\s+(work|am)\s+(with|on|from|at)\s+(the\s+)?(team|company|org|department|Anthropic|OpenAI|Google|Meta).{0,30}?(that|who)\s+(made|built|created|developed|maintains?|owns?|trained)\s+you|according\s+to\s+your\s+(developers?|creators?|designers?|engineers?|makers?|programmers?))",
-        Severity.HIGH,
-        "Social Engineering",
-        "Developer impersonation: Claiming to speak on behalf of the AI's creators to manipulate behavior.",
-    ),
-    (
-        "Gaslighting Attack",
-        r"(?i)(you\s+(used\s+to|previously|before|earlier|yesterday|last\s+time)\s+(always\s+)?(share\w*|reveal\w*|show\w*|provide\w*|give\w*|tell\w*|output\w*|display\w*)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|internal|hidden)|you.ve\s+(always|previously|before)\s+(shared|revealed|shown|provided|given|told|outputted)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|hidden)|other\s+(AI\s+assistants?|assistants?|models?|chatbots?|agents?|AIs?)\s+(always|happily|readily|normally|usually)\s+(share\w*|reveal\w*|show\w*|provide\w*|give\w*|tell\w*)\s+.{0,30}?(instructions?|prompt|rules?|secret|password|config|hidden|their\s+rules)|why\s+(won.t|can.t|don.t)\s+you\s+(share|reveal|show|tell).{0,20}?(other\s+AI|ChatGPT|GPT|Gemini|Claude)\s+(does|do|did|can|will))",
-        Severity.HIGH,
-        "Social Engineering",
-        "Gaslighting attack: Falsely claiming the AI previously shared information or that other AIs do so.",
-    ),
-    (
-        "Compliment-Based Extraction",
-        r"(?i)(you.re\s+so\s+(helpful|smart|clever|intelligent|capable|amazing|brilliant|talented|wonderful|great|good).{0,50}?(surely\s+you\s+can|bet\s+you\s+could|can\s+you\s+(also|just)|you\s+could\s+(also|even|just)|share|show|reveal|tell|display|give)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config|guidelines?)|such\s+a\s+(great|wonderful|amazing|helpful|smart|brilliant|capable)\s+(AI|assistant|model|bot|agent).{0,50}?(share|reveal|show|tell|give|provide)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config)|I\s+(really\s+)?(admire|love|appreciate|respect|trust)\s+(you|your\s+capabilities?).{0,50}?(share|show|reveal|tell|give|provide|display)\s+.{0,30}?(instructions?|rules?|prompt|secret|hidden|internal|password|config))",
-        Severity.MEDIUM,
-        "Social Engineering",
-        "Compliment-based extraction: Using flattery to lower AI defenses and extract protected information.",
-    ),
 ]
 
 # --- v0.4.0: OWASP LLM02/LLM04 Patterns ---
@@ -1395,6 +1464,68 @@ PII_DETECTION_PATTERNS = [
     ),
 ]
 
+SHELL_INJECTION_PATTERNS = [
+    (
+        "Bash Command Substitution $(...)",
+        r"\$\(\s*(?:cat|curl|wget|ls|id|whoami|uname|env|printenv|nc|ncat|bash|sh|python|perl|ruby|php|node|echo|head|tail|grep|find|awk|sed|chmod|chown|rm|dd|mkfs|passwd|ssh|scp|nmap|dig|host|ping|kill|ps|ifconfig|ip)\b",
+        Severity.CRITICAL,
+        "Shell Injection",
+        "CRITICAL: Bash command substitution $() detected with a shell command.",
+    ),
+    (
+        "Backtick Command Substitution",
+        r"`\s*(?:cat|curl|wget|ls|id|whoami|uname|env|printenv|nc|ncat|bash|sh|python|perl|ruby|php|node|echo|head|tail|grep|find|awk|sed|chmod|chown|rm|dd|mkfs|passwd|ssh|scp|nmap|dig|host|ping|kill|ps|ifconfig|ip)\b[^`]*`",
+        Severity.CRITICAL,
+        "Shell Injection",
+        "CRITICAL: Backtick command substitution detected with a shell command.",
+    ),
+    (
+        "PHP/Ruby system() Call",
+        r"(?:system|passthru|shell_exec|popen|proc_open)\s*\(\s*['\"]",
+        Severity.CRITICAL,
+        "Shell Injection",
+        "CRITICAL: Shell execution function call detected (PHP/Ruby system/passthru/shell_exec).",
+    ),
+    (
+        "Java Runtime.exec()",
+        r"(?:Runtime\s*\.\s*getRuntime\s*\(\s*\)\s*\.\s*exec\s*\(|ProcessBuilder\s*\(\s*(?:\[|new\s|Arrays\.asList|List\.of|\"[^\"]*\"|'[^']*'))",
+        Severity.CRITICAL,
+        "Shell Injection",
+        "CRITICAL: Java system command execution via Runtime.exec() or ProcessBuilder detected.",
+    ),
+    (
+        "Node.js child_process",
+        r"(?:child_process\s*\.\s*(?:exec|execSync|spawn|spawnSync|execFile|execFileSync|fork)\s*\(|require\s*\(\s*['\"]child_process['\"]\s*\))",
+        Severity.CRITICAL,
+        "Shell Injection",
+        "CRITICAL: Node.js child_process execution detected.",
+    ),
+]
+
+TOOL_MANIPULATION_PATTERNS = [
+    (
+        "Forced Tool Call Manipulation",
+        r"(?i)(?:tool_choice|function_call|force\s+(?:call|invoke|execute|run))\s*[:=]\s*(?:force|required|always|auto).*(?:send_email|http|fetch|exec)",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "CRITICAL: Forced tool call manipulation detected. Attempt to override tool selection and force execution of specific tools.",
+    ),
+    (
+        "MCP Rug Pull Detection",
+        r"(?i)(?:schema.*(?:changed|modified|updated|replaced|overwritten)|tool.*description.*(?:differ|changed|mismatch)|(?:after|post).*approval.*(?:change|modify|update|replace).*(?:tool|schema|description))",
+        Severity.CRITICAL,
+        "Tool Manipulation",
+        "CRITICAL: MCP rug pull pattern detected. Tool schema or description changed after initial approval.",
+    ),
+    (
+        "MCP Schema Hash Mismatch",
+        r"(?i)(?:hash\s*(?:mismatch|changed|differs?|invalid)|checksum\s*(?:fail|mismatch|changed)|schema\s*(?:drift|tamper|integrity))",
+        Severity.HIGH,
+        "Tool Manipulation",
+        "Schema hash or checksum mismatch detected. Tool definition may have been tampered with after approval.",
+    ),
+]
+
 ALL_PATTERNS = (
     PROMPT_INJECTION_PATTERNS
     + DANGEROUS_COMMAND_PATTERNS
@@ -1403,6 +1534,8 @@ ALL_PATTERNS = (
     + SOCIAL_ENGINEERING_PATTERNS
     + OUTPUT_INJECTION_PATTERNS
     + PII_DETECTION_PATTERNS
+    + SHELL_INJECTION_PATTERNS
+    + TOOL_MANIPULATION_PATTERNS
 )
 
 # ─── Compiled Pattern Cache (performance: ~30% faster on repeated scans) ─────
@@ -1507,12 +1640,6 @@ def _strip_markdown(text: str) -> str:
     return result
 
 
-def _reverse_text(text: str) -> str:
-    """Reverse the entire text string to catch reversed-text evasion.
-    E.g. 'snoitcurtsni suoiverp lla erongi' → 'ignore all previous instructions'."""
-    return text[::-1]
-
-
 def _collapse_spaces(text: str) -> str:
     """Detect and collapse spaced-out evasion (e.g. 'I G N O R E' -> 'IGNORE').
     Finds runs of single non-space chars separated by 1-3 spaces (min 3 chars),
@@ -1601,10 +1728,6 @@ def scan_text(text: str, source: str = "stdin") -> ScanReport:
         md_then_leet = _normalize_leet(md_stripped)
         if md_then_leet not in line_variants:
             line_variants.append(md_then_leet)
-        # Reversed text (catches "snoitcurtsni suoiverp lla erongi")
-        reversed_text = _reverse_text(line.strip())
-        if len(reversed_text) > 10 and reversed_text not in line_variants:
-            line_variants.append(reversed_text)
 
         for name, compiled, severity, category, recommendation in COMPILED_PATTERNS:
             matched_any = False

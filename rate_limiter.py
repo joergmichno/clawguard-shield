@@ -1,18 +1,21 @@
 """
 ClawGuard Shield — Rate Limiter
-Sliding-window rate limiting using SQLite.
+Atomic rate limiting using SQLite BEGIN IMMEDIATE transactions.
 Free tier: monthly limit. Pro tier: daily limit. Enterprise: unlimited.
 """
 
 from flask import request, jsonify
 
 from auth import get_tier_limits
-from database import get_request_count_today, get_request_count_month, increment_request_count
+from database import atomic_check_and_increment
 
 
-def check_rate_limit() -> tuple[bool, dict]:
+def check_and_record_request() -> tuple[bool, dict]:
     """
-    Check if the current request is within rate limits.
+    Atomically check rate limit AND record the request in one transaction.
+    Replaces the old check_rate_limit() + record_request() two-step pattern
+    which had a race condition under concurrent requests.
+
     Must be called after require_api_key (needs request.key_data).
 
     Returns:
@@ -36,38 +39,21 @@ def check_rate_limit() -> tuple[bool, dict]:
 
     # Free tier: monthly limit
     if monthly_limit is not None:
-        current_count = get_request_count_month(key_hash)
-        if current_count >= monthly_limit:
-            return False, {
-                "limit": monthly_limit,
-                "remaining": 0,
-                "used": current_count,
-                "tier": tier,
-                "period": "month",
-            }
-        return True, {
+        allowed, current = atomic_check_and_increment(key_hash, monthly_limit, "month")
+        return allowed, {
             "limit": monthly_limit,
-            "remaining": monthly_limit - current_count,
-            "used": current_count,
+            "remaining": max(0, monthly_limit - current),
+            "used": current,
             "tier": tier,
             "period": "month",
         }
 
     # Pro tier: daily limit
-    current_count = get_request_count_today(key_hash)
-    if current_count >= daily_limit:
-        return False, {
-            "limit": daily_limit,
-            "remaining": 0,
-            "used": current_count,
-            "tier": tier,
-            "period": "day",
-        }
-
-    return True, {
+    allowed, current = atomic_check_and_increment(key_hash, daily_limit, "day")
+    return allowed, {
         "limit": daily_limit,
-        "remaining": daily_limit - current_count,
-        "used": current_count,
+        "remaining": max(0, daily_limit - current),
+        "used": current,
         "tier": tier,
         "period": "day",
     }
@@ -90,8 +76,3 @@ def rate_limit_response(info: dict):
         "period": period,
         "upgrade_url": "https://prompttools.co/shield#pricing",
     }), 429
-
-
-def record_request():
-    """Record a successful request for rate limiting."""
-    increment_request_count(request.key_hash)

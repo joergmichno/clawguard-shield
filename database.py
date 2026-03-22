@@ -83,6 +83,18 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_keys_prefix
                 ON api_keys(key_prefix);
+
+            CREATE TABLE IF NOT EXISTS leads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                score TEXT,
+                lead_type TEXT,
+                source TEXT DEFAULT 'risk-score-widget',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_leads_email
+                ON leads(email);
         """)
 
         # Migration: add newsletter_consent column if missing

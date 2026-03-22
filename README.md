@@ -3,7 +3,7 @@
 **Security Scanning REST API for AI Agents**
 
 [![CI](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml/badge.svg)](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-70%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-262%20passed-brightgreen)](tests/)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Live](https://img.shields.io/badge/API-live-brightgreen)](https://prompttools.co/api/v1/health)
@@ -12,7 +12,7 @@
 
 🎯 **Live Demo:** [prompttools.co](https://prompttools.co)
 
-REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, social engineering, tool manipulation, and privilege escalation patterns. 132 regex patterns in 14 languages, 6ms average scan time, zero ML inference. EU AI Act compliance mapping included.
+REST API that scans text for prompt injections, data exfiltration, dangerous commands, code obfuscation, social engineering, tool manipulation, and privilege escalation patterns. 200 regex patterns in 15 languages, 6ms average scan time, zero ML inference. EU AI Act compliance mapping included.
 
 **Live Demo:** https://prompttools.co/api/v1/
 **Core Scanner:** [ClawGuard](https://github.com/joergmichno/clawguard) (open-source, zero dependencies)
@@ -182,7 +182,7 @@ All errors return JSON with `error` and `message` fields.
 | **Code Obfuscation** | 11 | Python `eval()`/`exec()`, `getattr()`, magic attributes, string assembly |
 | **Social Engineering** | 3 | Urgency manipulation, authority impersonation, confidentiality traps |
 
-132 regex patterns across 9 categories. 14 languages including Arabic and Hindi. EU AI Act compliance mapping.
+200 regex patterns across 9 categories. 15 languages including Arabic and Hindi. EU AI Act compliance mapping.
 
 ## Rate Limiting
 
@@ -218,7 +218,7 @@ The tier system demonstrates a multi-tenant API architecture with per-key rate l
                │  auth.py  │  │ rate_limiter │  │   clawguard.py  │
                │           │  │    .py       │  │  (scan engine)  │
                │ Key gen   │  │              │  │                 │
-               │ SHA-256   │  │ Sliding      │  │ 135 patterns    │
+               │ SHA-256   │  │ Sliding      │  │ 200 patterns    │
                │ Validate  │  │ window/day   │  │ 5 categories    │
                │ Tiers     │  │ Per-key      │  │ Risk scoring    │
                └────┬──────┘  └──────┬───────┘  └─────────────────┘
@@ -248,7 +248,7 @@ SQLite with WAL mode for concurrent reads. Thread-local connections. Foreign key
 2. **Auth** — Validate `X-API-Key` format → SHA-256 hash → lookup in `api_keys`
 3. **Rate Check** — Count today's requests for this key against tier limit
 4. **Validation** — Check text length against tier's `max_text_length`
-5. **Scan** — Run ClawGuard's `scan_text()` against all 135 patterns
+5. **Scan** — Run ClawGuard's `scan_text()` against all 200 patterns
 6. **Log** — Record usage (endpoint, text length, findings, response time)
 7. **Response** — Return findings with rate limit headers
 
@@ -299,7 +299,7 @@ python -m pytest tests/ -v
 
 ## Related Projects
 
-- [ClawGuard](https://github.com/joergmichno/clawguard) — The open-source scanner this API wraps (135 patterns, zero dependencies)
+- [ClawGuard](https://github.com/joergmichno/clawguard) — The open-source scanner this API wraps (200 patterns, zero dependencies)
 - [ClawGuard Shield Python SDK](https://github.com/joergmichno/clawguard-shield-python) — Python client library ([PyPI](https://pypi.org/project/clawguard-shield/))
 - [ClawGuard Scan Action](https://github.com/joergmichno/clawguard-scan-action) — GitHub Action for CI/CD security scanning
 - [Prompt Lab](https://github.com/joergmichno/prompt-lab) — Interactive prompt injection playground ([Live Demo](https://prompttools.co))

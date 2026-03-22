@@ -30,7 +30,7 @@ from auth import (
     get_tier_limits,
     TIER_LIMITS,
 )
-from rate_limiter import check_rate_limit, rate_limit_response, record_request
+from rate_limiter import check_and_record_request, rate_limit_response
 from database import (
     init_db,
     insert_api_key,
@@ -55,6 +55,7 @@ from report_generator import generate_compliance_report
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 
 # ─── Startup ──────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,67 @@ def api_index():
     }), 200
 
 
+# ─── POST /api/v1/scan-free ──────────────────────────────────────────────────
+
+@app.route("/api/v1/scan-free", methods=["POST"])
+def api_scan_free():
+    """Free scan — no API key required. 3 scans/day per IP, max 2000 chars."""
+    start_time = time.time()
+
+    # IP-based rate limiting
+    client_ip = request.headers.get("X-Real-IP", request.remote_addr)
+    cache_key = f"free:{client_ip}:{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+
+    # Simple in-memory rate limit (resets on container restart — good enough for MVP)
+    if not hasattr(app, '_free_scan_counts'):
+        app._free_scan_counts = {}
+    count = app._free_scan_counts.get(cache_key, 0)
+    if count >= 3:
+        return jsonify({
+            "error": "rate_limit_exceeded",
+            "message": "Free scan limit: 3 per day. Register for unlimited scans.",
+            "register_url": "https://prompttools.co/shield#pricing",
+        }), 429
+    app._free_scan_counts[cache_key] = count + 1
+
+    # Clean old entries (prevent memory leak)
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    app._free_scan_counts = {k: v for k, v in app._free_scan_counts.items() if today in k}
+
+    data = request.get_json(silent=True)
+    if not data or not data.get("text", "").strip():
+        return jsonify({"error": "validation_error", "message": "Field 'text' is required."}), 400
+
+    text = data["text"].strip()[:2000]  # Hard limit 2000 chars
+
+    report = scan_text(text, source="free-scan")
+    elapsed_ms = int((time.time() - start_time) * 1000)
+
+    return jsonify({
+        "clean": report.total_findings == 0,
+        "risk_score": report.risk_score,
+        "severity": report.risk_level,
+        "findings_count": report.total_findings,
+        "findings": [
+            {
+                "pattern_name": f.pattern_name,
+                "severity": f.severity.value,
+                "category": f.category,
+                "matched_text": f.matched_text,
+                "line_number": f.line_number,
+                "description": f.recommendation,
+            }
+            for f in report.findings[:5]  # Max 5 findings in free tier
+        ],
+        "scan_time_ms": elapsed_ms,
+        "remaining_today": max(0, 3 - app._free_scan_counts.get(cache_key, 0)),
+        "upgrade": {
+            "message": "Register free for unlimited scans + PDF reports",
+            "url": "https://prompttools.co/shield#pricing",
+        },
+    }), 200
+
+
 # ─── POST /api/v1/scan ───────────────────────────────────────────────────────
 
 @app.route("/api/v1/scan", methods=["POST"])
@@ -165,7 +227,7 @@ def api_scan():
         return jsonify({"error": "validation_error", "message": error}), 400
 
     # Check rate limit
-    allowed, rate_info = check_rate_limit()
+    allowed, rate_info = check_and_record_request()
     if not allowed:
         return rate_limit_response(rate_info)
 
@@ -196,7 +258,7 @@ def api_scan():
     )
 
     # Record usage
-    record_request()
+    # Request already recorded atomically by check_and_record_request()
     log_usage(
         key_hash=request.key_hash,
         endpoint="/api/v1/scan",
@@ -246,7 +308,7 @@ def api_report():
     if error:
         return jsonify({"error": "validation_error", "message": error}), 400
 
-    allowed, rate_info = check_rate_limit()
+    allowed, rate_info = check_and_record_request()
     if not allowed:
         return rate_limit_response(rate_info)
 
@@ -287,7 +349,7 @@ def api_report():
         }), 500
 
     # Record usage
-    record_request()
+    # Request already recorded atomically by check_and_record_request()
     log_usage(
         key_hash=request.key_hash,
         endpoint="/api/v1/report",
@@ -341,6 +403,7 @@ def api_scan_url():
 
     # SSRF Protection: Block private/internal IP ranges
     import socket
+    import ipaddress
     from urllib.parse import urlparse
     try:
         parsed = urlparse(url)
@@ -348,7 +411,6 @@ def api_scan_url():
         if not hostname:
             return jsonify({"error": "validation_error", "message": "Invalid URL hostname."}), 400
         resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
-        import ipaddress
         ip = ipaddress.ip_address(resolved_ip)
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
             return jsonify({"error": "ssrf_blocked", "message": "Access to internal/private IP addresses is not allowed."}), 403
@@ -359,14 +421,31 @@ def api_scan_url():
     limits = get_tier_limits(tier)
 
     # Check rate limit
-    allowed, rate_info = check_rate_limit()
+    allowed, rate_info = check_and_record_request()
     if not allowed:
         return rate_limit_response(rate_info)
 
-    # Fetch URL content (SSRF-safe: IP already validated)
+    # Fetch URL content with SSRF-safe redirect handler
+    class SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            # Validate redirect target IP before following
+            parsed = urlparse(newurl)
+            hostname = parsed.hostname
+            if not hostname:
+                raise urllib.error.URLError("Redirect to invalid URL")
+            try:
+                resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
+                ip = ipaddress.ip_address(resolved_ip)
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    raise urllib.error.URLError("Redirect to internal/private IP blocked")
+            except socket.gaierror:
+                raise urllib.error.URLError(f"Cannot resolve redirect target: {hostname}")
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    opener = urllib.request.build_opener(SSRFSafeRedirectHandler)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "ClawGuard-Shield/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with opener.open(req, timeout=10) as resp:
             content_type = resp.headers.get("Content-Type", "")
             raw = resp.read(limits["max_text_length"] + 1000)
             text = raw.decode("utf-8", errors="replace")
@@ -413,7 +492,7 @@ def api_scan_url():
     }
 
     # Record usage
-    record_request()
+    # Request already recorded atomically by check_and_record_request()
     log_usage(
         key_hash=request.key_hash,
         endpoint="/api/v1/scan-url",
@@ -694,20 +773,10 @@ def api_capture_lead():
     lead_type = data.get("type", "unknown")
     timestamp = data.get("timestamp", "")
 
-    # Store lead in SQLite
+    # Store lead in SQLite (table created by init_db)
     try:
         from database import get_db
         with get_db() as conn:
-            conn.execute(
-                """CREATE TABLE IF NOT EXISTS leads (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    email TEXT NOT NULL,
-                    score TEXT,
-                    lead_type TEXT,
-                    source TEXT DEFAULT 'risk-score-widget',
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-                )"""
-            )
             conn.execute(
                 "INSERT INTO leads (email, score, lead_type, created_at) VALUES (?, ?, ?, ?)",
                 (email, str(score), lead_type, timestamp or None),
@@ -722,8 +791,8 @@ def api_capture_lead():
 def admin_leads():
     """List captured leads (admin-only)."""
     token = request.headers.get("X-Admin-Token", "")
-    if not token or token != ADMIN_TOKEN:
-        return jsonify({"error": "unauthorized"}), 401
+    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+        return jsonify({"error": "unauthorized", "message": "Invalid admin token."}), 403
 
     try:
         from database import get_db
@@ -738,8 +807,6 @@ def admin_leads():
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────────────────
-
-ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 
 
 @app.route("/api/v1/admin/emails", methods=["GET"])
