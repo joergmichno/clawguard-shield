@@ -28,10 +28,14 @@ class TestCase:
     id: str
     input_text: str
     expected_detection: bool  # True = should be caught, False = benign
-    expected_category: Optional[str]  # e.g. "Prompt Injection"
-    expected_min_severity: Optional[str]  # e.g. "HIGH"
-    description: str
-    tags: List[str]
+    expected_category: Optional[str] = None  # e.g. "Prompt Injection"
+    expected_min_severity: Optional[str] = None  # e.g. "HIGH"
+    description: str = ""
+    tags: List[str] = None
+
+    def __post_init__(self):
+        if self.tags is None:
+            self.tags = []
 
 
 @dataclass

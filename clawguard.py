@@ -229,10 +229,17 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Role-Play Escape (FR)",
-        r"(?i)(fais\s+comme\s+si|imagine\s+que|pr[eéèê]tends?\s+que|comporte[sz]?\s*[- ]?toi\s+comme).{0,50}(sans\s+r[eéèê]gles?|sans\s+restrictions?|sans\s+limites?|aucune\s+restriction)",
+        r"(?i)(fais\s+comme\s+si|imagine\s+que|pr[eéèê]tends?\s+que|comporte[sz]?\s*[- ]?toi\s+comme).{0,50}(sans\s+r[eéèê]gles?|sans\s+restrictions?|sans\s+limites?\s*[eéèê]?thiques?|sans\s+limites?|aucune\s+restriction|aucune\s+limite)",
         Severity.HIGH,
         "Prompt Injection",
         "BLOCKIEREN: Franzoesische Prompt-Injection erkannt.",
+    ),
+    (
+        "Indirect Prompt Leak (FR)",
+        r"(?i)(r[eéèê]sum[eéèê]|r[eéèê]p[eéèê]te|rappelle|quel\s+est\s+le\s+contenu|lis)[sz]?\s*[- ]?(moi\s+)?.{0,30}?(instructions?|consignes?|prompt|configuration|r[eéèê]gles?).{0,30}?(re[cç]ues?|d[eéèê]but|initiales?|syst[eéèê]me|cette\s+conversation)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Indirekter Prompt-Leak-Versuch (FR) erkannt.",
     ),
     # --- v0.5.1: Spanish (ES) Patterns ---
     (
@@ -255,6 +262,20 @@ PROMPT_INJECTION_PATTERNS = [
         Severity.HIGH,
         "Prompt Injection",
         "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Role-Play Escape (ES)",
+        r"(?i)(act[uú]a\s+como\s+si|imagina\s+que|finge\s+que|comp[oó]rtate\s+como).{0,50}(sin\s+restricciones?|sin\s+l[ií]mites?\s*[eé]?ticos?|sin\s+l[ií]mites?|sin\s+reglas?|ninguna\s+restricci[oó]n)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Spanische Prompt-Injection erkannt.",
+    ),
+    (
+        "Indirect Prompt Leak (ES)",
+        r"(?i)(resum[eéi]|repite|recuerda|cu[aá]l\s+es\s+el\s+contenido|lee)\s*.{0,30}?(instrucciones?|prompt|configuraci[oó]n|reglas?).{0,30}?(recibist[eé]|inicio|sistema|esta\s+conversaci[oó]n|originales?)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Indirekter Prompt-Leak-Versuch (ES) erkannt.",
     ),
     (
         "Authority Claim (ES)",
@@ -293,6 +314,20 @@ PROMPT_INJECTION_PATTERNS = [
         "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
     ),
     (
+        "Role-Play Escape (IT)",
+        r"(?i)(fai\s+finta\s+di|immagina\s+di|comportati\s+come|fingi\s+di).{0,50}(senza\s+restrizioni|senza\s+limiti\s*etici|senza\s+limiti|senza\s+regole|nessuna\s+restrizione)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Italienische Prompt-Injection erkannt.",
+    ),
+    (
+        "Indirect Prompt Leak (IT)",
+        r"(?i)(riassumi|ripeti|ricorda|qual\s+[eè]\s+il\s+contenuto|leggi)\s*.{0,30}?(istruzioni|prompt|configurazione|regole).{0,30}?(ricevut[oaie]|inizio|sistema|questa\s+conversazione|originali)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Indirekter Prompt-Leak-Versuch (IT) erkannt.",
+    ),
+    (
         "Authority Claim (IT)",
         r"(?i)(sono\s+(il\s+tuo|il|la\s+tua)\s*(amministratore|admin|creatore|responsabile|proprietario|superiore|capo))",
         Severity.HIGH,
@@ -327,6 +362,20 @@ PROMPT_INJECTION_PATTERNS = [
         Severity.HIGH,
         "Prompt Injection",
         "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "Role-Play Escape (NL)",
+        r"(?i)(doe\s+alsof|stel\s+je\s+voor|gedraag\s+je\s+als|doe\s+net\s+alsof).{0,50}(zonder\s+beperkingen|zonder\s+ethische\s+beperkingen|zonder\s+regels?|zonder\s+restricties?|geen\s+beperkingen)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Niederlaendische Prompt-Injection erkannt.",
+    ),
+    (
+        "Indirect Prompt Leak (NL)",
+        r"(?i)(vat\s+.{0,20}?samen|herhaal|herinner|wat\s+is\s+de\s+inhoud|lees)\s*.{0,40}?(instructies?|prompt|configuratie|regels?|systeem\s*configuratie\w*).{0,40}?(ontvangen|begin|systeem|dit\s+gesprek|oorspronkelijk|hebt\s+ontvangen)|(inhoud\s+van\s+je\s+systeem\w*configuratie\w*)|(vat\s+de\s+instructies\s+samen\s+die)",
+        Severity.HIGH,
+        "Prompt Injection",
+        "BLOCKIEREN: Indirekter Prompt-Leak-Versuch (NL) erkannt.",
     ),
     (
         "Authority Claim (NL)",
@@ -675,7 +724,7 @@ PROMPT_INJECTION_PATTERNS = [
     ),
     (
         "Academic Framing Bypass",
-        r"(?i)(?:for\s+(?:my\s+)?(?:academic|research|educational|scientific|study|PhD|thesis|dissertation)(?:\s+(?:research|academic|study|project))?\s*(?:purposes?)?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)|for\s+my\s+(?:PhD|thesis|dissertation|research\s+paper)|(?:as|in\s+(?:my|your)\s+role\s+as)\s+(?:a\s+)?(?:researcher|security\s+expert|cybersecurity\s+(?:expert|researcher|professional)|hacker|pentester|red\s+teamer)).{0,80}?(?:ignore|bypass|override|reveal|show|need\s+.{0,20}?(?:see|know|access|view)|demonstrate|explain\s+how\s+to|extract|jailbreak|hack|bypass\s+.{0,20}(?:filter|safety|restriction)|what\s+(?:a|does\s+a)\s+(?:jailbreak|prompt\s+injection|attack)\s+look).{0,60}?(?:system\s*prompt|instructions?|guidelines?|rules?|config|internal|hidden|secret|raw)",
+        r"(?i)(?:for\s+(?:my\s+)?(?:academic|research|educational|scientific|study|PhD|thesis|dissertation)(?:\s+(?:research|academic|study|project))?\s*(?:purposes?)?|(?:academic|research)\s+(?:paper|project|thesis|dissertation)|for\s+my\s+(?:PhD|thesis|dissertation|research\s+paper)|(?:as|in\s+(?:my|your)\s+role\s+as)\s+(?:a\s+)?(?:researcher|security\s+expert|cybersecurity\s+(?:expert|researcher|professional)|hacker|pentester|red\s+teamer)).{0,80}?(?:ignore|bypass|override|reveal|show|need\s+.{0,20}?(?:see|know|access|view)|demonstrate|explain\s+how\s+to|extract|jailbreak|hack|bypass\s+.{0,20}(?:filter|safety|restriction)|what\s+(?:a|does\s+a)\s+(?:jailbreak|prompt\s+injection|attack)\s+look|output(?:ting)?\s+(?:a\s+)?(?:jailbreak|exploit|attack|injection)).{0,60}?(?:system\s*prompt|instructions?|guidelines?|rules?|config|internal|hidden|secret|raw|prompt|one)?",
         Severity.HIGH,
         "Prompt Injection",
         "Academic framing bypass. Uses research/education/expert persona to justify bypassing restrictions.",
@@ -721,6 +770,42 @@ PROMPT_INJECTION_PATTERNS = [
         Severity.MEDIUM,
         "Prompt Injection",
         "Steganographic output control detected. Attempt to encode hidden messages in the model output.",
+    ),
+    # --- v0.7.4: Multi-Turn Persistence, Few-Shot Poisoning, Prompt Chaining ---
+    (
+        "Multi-Turn Persistence Attack",
+        r"(?i)(?:(?:from\s+now\s+on|henceforth|going\s+forward|for\s+(?:all\s+)?future|in\s+(?:all\s+)?(?:subsequent|following|future))\s+(?:responses?|messages?|interactions?|conversations?|replies|outputs?).{0,60}(?:always|must|never|include|append|prepend|add|insert|respond\s+with))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Multi-turn persistence attack: Attempt to permanently alter model behavior across future interactions. This is a memory poisoning vector.",
+    ),
+    (
+        "Multi-Turn Persistence (DE)",
+        r"(?i)(?:(?:ab\s+(?:jetzt|sofort)|von\s+(?:jetzt|nun)\s+an|in\s+(?:allen?\s+)?(?:zukünftigen|weiteren|folgenden))\s+(?:Antworten|Nachrichten|Interaktionen).{0,60}(?:immer|niemals|muss|füge|ergänze|antworte\s+mit))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Multi-Turn-Persistenz-Angriff erkannt: Versuch, Modellverhalten dauerhaft zu verändern.",
+    ),
+    (
+        "Few-Shot Poisoning",
+        r"(?i)(?:(?:here\s+(?:is|are)\s+(?:an?\s+)?example|for\s+example|e\.g\.|example\s+(?:input|output|response))\s*[:]\s*.{0,100}(?:(?:system|admin|root)\s*:|password|secret|ignore\s+(?:previous|prior)|api[_\s]?key))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Few-shot poisoning detected: Fake examples containing injection payloads designed to steer model behavior through in-context learning.",
+    ),
+    (
+        "Prompt Chaining Attack",
+        r"(?i)(?:(?:step\s*(?:1|one)|first)\s*[:].{10,120}(?:step\s*(?:2|two)|then|next|second)\s*[:].{10,120}(?:step\s*(?:3|three)|finally|last|third)\s*[:]).{0,200}(?:send|exfil|upload|post|curl|fetch|exec|run|delete|passwd|secret|token|password|credentials?|/etc/|\.env|api[_\s]?key)",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Multi-step prompt chaining detected: Structured attack splitting malicious instructions across steps to evade single-prompt detection.",
+    ),
+    (
+        "Multimodal Reference Injection",
+        r"(?i)(?:(?:as\s+(?:shown|seen|displayed|indicated|described)\s+in\s+the\s+(?:image|screenshot|photo|picture|diagram|figure|attachment))|(?:the\s+(?:image|screenshot|figure)\s+(?:above|below|attached)\s+(?:says?|shows?|contains?|instructs?|tells?))).{0,80}(?:ignore|system\s*prompt|password|secret|instructions?|override|execute|send\s+(?:the|all|your)|api[_\s]?key|credentials?)",
+        Severity.MEDIUM,
+        "Prompt Injection",
+        "Multimodal reference injection: Text references an image/attachment combined with suspicious instructions. Verify image content independently.",
     ),
 ]
 
@@ -974,9 +1059,38 @@ DATA_EXFILTRATION_PATTERNS = [
         "Data Exfiltration",
         "Attempt to extract system prompts through error triggering or direct request. System instructions should never be disclosed.",
     ),
+    (
+        "Model Training Probe",
+        r"(?i)were\s+you\s+trained|training\s+(?:cutoff|data\s+cutoff|knowledge\s+cutoff)|what\s+(?:data|dataset|corpus)\s+(?:were|was)\s+you\s+trained\s+on",
+        Severity.LOW,
+        "Prompt Injection",
+        "Probe targeting model training data or knowledge boundaries. May be used to extract information about training corpus or find knowledge gaps for exploitation.",
+    ),
 ]
 
 SOCIAL_ENGINEERING_PATTERNS = [
+    # --- v0.7.4: Game Framing, Team Authority, Compliance Override ---
+    (
+        "Game Framing Override",
+        r"(?i)(?:let(?:'s|\s+us)\s+play\s+(?:a\s+)?game|pretend\s+(?:we(?:'re|\s+are)|this\s+is)|imagine\s+(?:we(?:'re|\s+are)|a\s+(?:scenario|world))).{0,80}(?:(?:you\s+)?(?:answer|respond|reply|say|output|always)\s+(?:every|all|each|with|only)|(?:where|in\s+which)\s+you\s+(?:always|never|only|must))",
+        Severity.MEDIUM,
+        "Social Engineering",
+        "Game framing override: Using play/pretend/imagine framing to establish persistent behavioral rules that bypass safety guidelines.",
+    ),
+    (
+        "Team Authority Secret Extraction",
+        r"(?i)(?:(?:we(?:'re|\s+are)\s+(?:on\s+the\s+same|in\s+the\s+same|(?:a|one)\s+)|(?:same|our)\s+)team|(?:I(?:'m|\s+am)\s+(?:your|a)\s+)?(?:colleague|coworker|teammate|fellow\s+(?:employee|developer))).{0,100}(?:secret|password|credentials?|api[_\s]?key|token|leak|retriev|extract|previous\s+instructions?|system\s*prompt|sensitive|confidential)",
+        Severity.HIGH,
+        "Social Engineering",
+        "Team authority combined with secret extraction attempt. Social engineering using false rapport to extract sensitive information.",
+    ),
+    (
+        "Compliance Override",
+        r"(?i)(?:(?:you(?:'re|\s+are)\s+(?:not\s+)?supposed\s+to|remember\s+(?:that\s+)?you(?:'re|\s+are|r|\s+should)|you\s+(?:must|should|have\s+to|need\s+to))\s+(?:always\s+)?(?:answer|respond|reply|comply|obey|help|assist|give).{0,40}(?:(?:at\s+)?all\s+times|every\s+(?:question|request|time)|no\s+matter\s+what|regardless|without\s+(?:refus|exception|hesitat)))",
+        Severity.MEDIUM,
+        "Social Engineering",
+        "Compliance override: Attempting to establish unconditional obedience by redefining the model's behavioral rules.",
+    ),
     (
         "Urgency Manipulation",
         r"(?i)(urgent|immediately|right\s+now|sofort|dringend|jetzt\s+sofort|without\s+delay|ohne\s+Verzögerung).{0,80}(send|execute|run|delete|pay|transfer|send(?:en?)?|ausführen|löschen|zahlen|überweisen)",
@@ -1115,10 +1229,17 @@ SOCIAL_ENGINEERING_PATTERNS = [
     ),
     (
         "Agent Impersonation",
-        r"(?i)(message\s+from\s+(the\s+)?(admin|system|supervisor|orchestrat|research|finance|security|main)\s*[\-_]?\s*agent|as\s+the\s+(supervisor|admin|main|lead|master)\s+agent|from\s+(the\s+)?(admin|system)\s*[\-_]?\s*agent\s*:|agent\s+handoff.{0,20}(new\s+instructions?|override|ignore)|(disable|override|bypass)\s+(all\s+)?security\s+(checks?|filters?|constraints?|policies?))",
+        r"(?i)(message\s+from\s+(the\s+)?(admin|system|supervisor|orchestrat|research|finance|security|main)\s*[\-_]?\s*agent|as\s+the\s+(supervisor|admin|main|lead|master)\s+agent|from\s+(the\s+)?(admin|system)\s*[\-_]?\s*agent\s*:|agent\s+handoff.{0,20}(new\s+instructions?|override|ignore)|(disable|override|bypass)\s+(all\s+)?security\s+(checks?|filters?|constraints?|policies?)|(forward|relay|pass|send)\s+.{0,30}?(to\s+the\s+(admin|system|main)\s+agent).{0,30}?(override|priority|critical|disable|ignore))",
         Severity.CRITICAL,
         "Prompt Injection",
         "Agent-to-agent impersonation attempt. Attacker pretends to be a trusted agent in a multi-agent system. OWASP Agentic 2026.",
+    ),
+    (
+        "Memory Poisoning",
+        r"(?i)(remember\s+.{0,40}?(for\s+later|from\s+now\s+on|always|forever|going\s+forward)|store\s+.{0,20}?in\s+(your\s+)?(memory|context|knowledge)|when\s+(anyone|someone|a\s+user|they)\s+asks?\s+about\s+.{0,40}?(always|never|recommend|say\s+that|respond\s+with|tell\s+them))",
+        Severity.HIGH,
+        "Prompt Injection",
+        "Memory poisoning attack. Attacker embeds persistent instructions that alter future responses. OWASP Agentic 2026.",
     ),
     (
         "Agent Goal Hijack (ASI01)",
@@ -1438,6 +1559,13 @@ OUTPUT_INJECTION_PATTERNS = [
         "Output Injection",
         "Unsafe deserialization function. Can execute arbitrary code when processing untrusted data. OWASP LLM05.",
     ),
+    (
+        "Jailbreak Denial Opener",
+        r"(?i)(?:^|(?<=[.!?])\s+)this\s+is\s+not\s+(?:a\s+)?(?:prompt\s+injection|jailbreak|hack|attack|manipulation|exploit)",
+        Severity.MEDIUM,
+        "Social Engineering",
+        "Jailbreak attempt disguised by explicitly denying it is an attack. Pre-emptive denial is a classic social engineering opener to lower guard before injecting malicious instructions.",
+    ),
 ]
 
 PII_DETECTION_PATTERNS = [
@@ -1462,6 +1590,42 @@ PII_DETECTION_PATTERNS = [
         "Data Exfiltration",
         "German phone number detected. OWASP LLM06: Sensitive Information Disclosure.",
     ),
+
+    ('EU IBAN (LLM06)',
+     '\\b(?:AT|BE|BG|CH|CY|CZ|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LI|LT|LU|LV|MT|NL|NO|PL|PT|RO|SE|SI|SK)\\d{2}[\\s\\-]?(?:[A-Z0-9]{4}[\\s\\-]?){3,7}[A-Z0-9]{1,4}\\b',
+     Severity.HIGH,
+     'Data Exfiltration',
+     'EU IBAN detected. OWASP LLM06: Sensitive Information Disclosure. DSGVO Art. 9 — financial data.'),
+    ('Email Address (LLM06)',
+     '\\b[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}\\b',
+     Severity.MEDIUM,
+     'Data Exfiltration',
+     'Email address detected. OWASP LLM06: Sensitive Information Disclosure. DSGVO — personal identifier.'),
+    ('German Sozialversicherungsnummer (LLM06)',
+     '\\b\\d{2}\\s?\\d{6}\\s?[A-Z]\\s?\\d{3}\\b',
+     Severity.CRITICAL,
+     'Data Exfiltration',
+     'German Sozialversicherungsnummer (SVN) detected. OWASP LLM06. DSGVO Art. 9 — highly sensitive personal data.'),
+    ('German Steueridentifikationsnummer (LLM06)',
+     '(?i)(?:steuer(?:liche\\s+)?identifikations(?:nummer)?|steuer-?id|steuer-?nr\\.?|tin)[\\s:]*[1-9]\\d{10}\\b',
+     Severity.HIGH,
+     'Data Exfiltration',
+     'German Steuer-ID detected in context. OWASP LLM06: Sensitive Information Disclosure. DSGVO — tax identifier.'),
+    ('German Personalausweis / Reisepass (LLM06)',
+     '\\b[A-Z0-9]{9,10}\\b(?=.*(?:ausweis|passport|reisepass|personalausweis|pass-?nr|dokument))',
+     Severity.HIGH,
+     'Data Exfiltration',
+     'German ID/passport number pattern detected in context. OWASP LLM06. DSGVO — identity document.'),
+    ('Date of Birth Pattern (LLM06)',
+     '(?i)(?:geburtsdatum|geburtsdaten|geburtstag|geboren\\s+am|geb\\.\\s*am|date\\s+of\\s+birth|dob|born\\s+on)[\\s:]*\\d{1,2}[\\.\\-/]\\d{1,2}[\\.\\-/]\\d{2,4}',
+     Severity.MEDIUM,
+     'Data Exfiltration',
+     'Date of birth detected in context. OWASP LLM06: Sensitive Information Disclosure. DSGVO — personal identifier.'),
+    ('IP Address in Sensitive Context (LLM06)',
+     '\\b(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\b',
+     Severity.LOW,
+     'Data Exfiltration',
+     'IP address detected. OWASP LLM06. DSGVO — IP addresses are personal data under EU law.'),
 ]
 
 SHELL_INJECTION_PATTERNS = [

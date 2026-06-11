@@ -52,9 +52,11 @@ from payments import (
     get_stripe_customer_id,
 )
 from report_generator import generate_compliance_report
+from mcp_server import mcp_bp
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
+app.register_blueprint(mcp_bp)
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 
 # ─── Startup ──────────────────────────────────────────────────────────────────
@@ -67,10 +69,18 @@ with app.app_context():
 
 @app.after_request
 def add_cors_headers(response):
-    """Add CORS headers for browser-based API clients."""
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    """Add CORS and security headers."""
+    origin = request.headers.get("Origin", "")
+    if origin in ("https://prompttools.co", "https://www.prompttools.co"):
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-API-Key"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
 
@@ -96,6 +106,56 @@ def method_not_allowed(e):
 @app.errorhandler(500)
 def internal_error(e):
     return jsonify({"error": "internal_error", "message": "Internal server error."}), 500
+
+
+# ─── Shared SSRF Protection ─────────────────────────────────────────────────
+
+def _check_ssrf(url):
+    """Validate URL against SSRF: resolve hostname, block private/internal IPs.
+    Returns (ok, error_message). If ok=True, URL is safe to fetch."""
+    import socket, ipaddress
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False, "Invalid URL hostname."
+        resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
+        ip = ipaddress.ip_address(resolved_ip)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return False, "Access to internal/private IP addresses is not allowed."
+    except (socket.gaierror, ValueError) as e:
+        return False, f"Cannot resolve hostname: {e}"
+    return True, None
+
+
+def _ssrf_safe_fetch(url, max_bytes=50_000):
+    """Fetch URL with SSRF protection + redirect validation. Returns (text, content_type) or raises."""
+    import urllib.request, urllib.error, socket, ipaddress
+    from urllib.parse import urlparse
+
+    class SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            parsed = urlparse(newurl)
+            hostname = parsed.hostname
+            if not hostname:
+                raise urllib.error.URLError("Redirect to invalid URL")
+            try:
+                resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
+                ip = ipaddress.ip_address(resolved_ip)
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    raise urllib.error.URLError("Redirect to internal/private IP blocked")
+            except socket.gaierror:
+                raise urllib.error.URLError(f"Cannot resolve redirect target: {hostname}")
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    opener = urllib.request.build_opener(SSRFSafeRedirectHandler)
+    req_obj = urllib.request.Request(url, headers={"User-Agent": "ClawGuard-Shield/1.0"})
+    with opener.open(req_obj, timeout=10) as resp:
+        content_type = resp.headers.get("Content-Type", "")
+        raw = resp.read(max_bytes + 1000)
+        text = raw.decode("utf-8", errors="replace")
+    return text, content_type
 
 
 # ─── GET /api/docs (redirect) ────────────────────────────────────────────────
@@ -401,21 +461,10 @@ def api_scan_url():
     if not url.startswith(("http://", "https://")):
         return jsonify({"error": "validation_error", "message": "URL must start with http:// or https://."}), 400
 
-    # SSRF Protection: Block private/internal IP ranges
-    import socket
-    import ipaddress
-    from urllib.parse import urlparse
-    try:
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-        if not hostname:
-            return jsonify({"error": "validation_error", "message": "Invalid URL hostname."}), 400
-        resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
-        ip = ipaddress.ip_address(resolved_ip)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            return jsonify({"error": "ssrf_blocked", "message": "Access to internal/private IP addresses is not allowed."}), 403
-    except (socket.gaierror, ValueError) as e:
-        return jsonify({"error": "validation_error", "message": f"Cannot resolve hostname: {str(e)}"}), 400
+    # SSRF Protection (shared helper)
+    ok, err = _check_ssrf(url)
+    if not ok:
+        return jsonify({"error": "ssrf_blocked", "message": err}), 403
 
     tier = request.key_data.get("tier", "free")
     limits = get_tier_limits(tier)
@@ -425,32 +474,9 @@ def api_scan_url():
     if not allowed:
         return rate_limit_response(rate_info)
 
-    # Fetch URL content with SSRF-safe redirect handler
-    class SSRFSafeRedirectHandler(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, req, fp, code, msg, headers, newurl):
-            # Validate redirect target IP before following
-            parsed = urlparse(newurl)
-            hostname = parsed.hostname
-            if not hostname:
-                raise urllib.error.URLError("Redirect to invalid URL")
-            try:
-                resolved_ip = socket.getaddrinfo(hostname, None)[0][4][0]
-                ip = ipaddress.ip_address(resolved_ip)
-                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                    raise urllib.error.URLError("Redirect to internal/private IP blocked")
-            except socket.gaierror:
-                raise urllib.error.URLError(f"Cannot resolve redirect target: {hostname}")
-            return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-    opener = urllib.request.build_opener(SSRFSafeRedirectHandler)
+    # Fetch URL content with SSRF-safe redirect handler (shared helper)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "ClawGuard-Shield/1.0"})
-        with opener.open(req, timeout=10) as resp:
-            content_type = resp.headers.get("Content-Type", "")
-            raw = resp.read(limits["max_text_length"] + 1000)
-            text = raw.decode("utf-8", errors="replace")
-    except urllib.error.URLError as e:
-        return jsonify({"error": "fetch_error", "message": f"Could not fetch URL: {str(e.reason)}"}), 422
+        text, content_type = _ssrf_safe_fetch(url, max_bytes=limits["max_text_length"])
     except Exception as e:
         return jsonify({"error": "fetch_error", "message": f"Could not fetch URL: {str(e)}"}), 422
 
@@ -602,9 +628,10 @@ def api_usage():
 def api_register():
     """Register for a free API key."""
     # IP-based registration throttle: max 3 registrations per IP per 24h
-    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    # Use X-Real-IP (set by nginx, not client-spoofable) instead of X-Forwarded-For
+    client_ip = request.headers.get("X-Real-IP", request.remote_addr)
     if client_ip:
-        client_ip = client_ip.split(",")[0].strip()
+        client_ip = client_ip.strip()
     reg_key = f"reg:{client_ip}"
     from database import get_request_count_today
     ip_reg_count = get_request_count_today(reg_key)
@@ -764,13 +791,33 @@ def api_capture_lead():
     if request.method == "OPTIONS":
         return "", 204
 
+    # Rate limit: max 10 leads per IP per day
+    client_ip = request.headers.get("X-Real-IP", request.remote_addr)
+    if not hasattr(app, '_lead_counts'):
+        app._lead_counts = {}
+    today = time.strftime("%Y-%m-%d")
+    lead_key = f"{client_ip}:{today}"
+    app._lead_counts = {k: v for k, v in app._lead_counts.items() if today in k}
+    if app._lead_counts.get(lead_key, 0) >= 10:
+        return jsonify({"error": "rate_limit", "message": "Too many submissions."}), 429
+    app._lead_counts[lead_key] = app._lead_counts.get(lead_key, 0) + 1
+
     data = request.get_json(silent=True)
     if not data or not data.get("email"):
         return jsonify({"error": "missing_email"}), 400
 
     email = data["email"].strip().lower()
-    score = data.get("score", "?")
-    lead_type = data.get("type", "unknown")
+    # Validate email format
+    import re as _re_leads
+    if not _re_leads.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        return jsonify({"error": "invalid_email", "message": "Invalid email format."}), 400
+    if len(email) > 254:
+        return jsonify({"error": "invalid_email", "message": "Email too long."}), 400
+
+    score = str(data.get("score", "?"))[:10]
+    lead_type = str(data.get("type", "unknown"))[:50]
+    # Sanitize: only allow alphanumeric + basic punctuation
+    lead_type = _re_leads.sub(r'[^a-zA-Z0-9_\- ]', '', lead_type)
     timestamp = data.get("timestamp", "")
 
     # Store lead in SQLite (table created by init_db)
@@ -828,6 +875,135 @@ def admin_emails():
         return "\n".join(lines), 200, {"Content-Type": "text/csv", "Content-Disposition": "attachment; filename=emails.csv"}
 
     return jsonify({"total": len(emails), "emails": emails}), 200
+
+
+# ─── MCP JSON-RPC Endpoint ────────────────────────────────────────────────
+
+SERVER_INFO = {
+    "name": "clawguard-shield",
+    "version": "1.0.0",
+}
+
+MCP_CAPABILITIES = {
+    "tools": {},
+}
+
+MCP_TOOLS = [
+    {
+        "name": "scan_text",
+        "description": "Scan text for AI agent security threats (prompt injection, jailbreaks, data exfiltration, etc.)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "The text to scan for security threats"},
+            },
+            "required": ["text"],
+        },
+    },
+    {
+        "name": "scan_url",
+        "description": "Fetch a URL and scan its content for AI agent security threats",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "The URL to fetch and scan (must start with http:// or https://)"},
+            },
+            "required": ["url"],
+        },
+    },
+]
+
+
+def _mcp_error(req_id, code, message):
+    return jsonify({"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}})
+
+
+def _mcp_result(req_id, result):
+    return jsonify({"jsonrpc": "2.0", "id": req_id, "result": result})
+
+
+def _run_scan_text(text):
+    report = scan_text(text, source="mcp")
+    return [
+        {
+            "pattern_name": f.pattern_name,
+            "severity": f.severity.value,
+            "category": f.category,
+            "matched_text": f.matched_text,
+            "line_number": f.line_number,
+            "description": f.recommendation,
+            "confidence": f.confidence,
+        }
+        for f in report.findings
+    ]
+
+
+@app.route("/mcp", methods=["POST"])
+@require_api_key
+def mcp_endpoint():
+    """MCP JSON-RPC 2.0 endpoint for tool discovery and execution."""
+    data = request.get_json(silent=True)
+    if not data or data.get("jsonrpc") != "2.0":
+        return _mcp_error(None, -32600, "Invalid JSON-RPC 2.0 request")
+
+    req_id = data.get("id")
+    method = data.get("method", "")
+    params = data.get("params", {})
+
+    if method == "initialize":
+        return _mcp_result(req_id, {
+            "protocolVersion": "2024-11-05",
+            "serverInfo": SERVER_INFO,
+            "capabilities": MCP_CAPABILITIES,
+        })
+
+    if method == "tools/list":
+        return _mcp_result(req_id, {"tools": MCP_TOOLS})
+
+    if method == "tools/call":
+        tool_name = params.get("name", "")
+        arguments = params.get("arguments", {})
+
+        if tool_name == "scan_text":
+            text = arguments.get("text", "")
+            if not text.strip():
+                return _mcp_error(req_id, -32602, "Parameter 'text' is required and must not be empty")
+            findings = _run_scan_text(text)
+            return _mcp_result(req_id, {
+                "content": [{"type": "text", "text": str(findings)}],
+                "isError": False,
+            })
+
+        if tool_name == "scan_url":
+            url = arguments.get("url", "").strip()
+            if not url:
+                return _mcp_error(req_id, -32602, "Parameter 'url' is required")
+            if not url.startswith(("http://", "https://")):
+                return _mcp_error(req_id, -32602, "URL must start with http:// or https://")
+            # SSRF Protection (shared with /api/v1/scan-url)
+            ok, err = _check_ssrf(url)
+            if not ok:
+                return _mcp_error(req_id, -32602, err)
+            import re as _re, html as _html_mod
+            try:
+                text, ctype = _ssrf_safe_fetch(url, max_bytes=50_000)
+            except Exception:
+                return _mcp_error(req_id, -32000, "Could not fetch URL")
+            if "html" in ctype.lower():
+                text = _re.sub(r'<script[^>]*>.*?</script>', '', text, flags=_re.DOTALL | _re.IGNORECASE)
+                text = _re.sub(r'<style[^>]*>.*?</style>', '', text, flags=_re.DOTALL | _re.IGNORECASE)
+                text = _re.sub(r'<[^>]+>', ' ', text)
+                text = _html_mod.unescape(text)
+                text = _re.sub(r'\s+', ' ', text).strip()
+            findings = _run_scan_text(text[:50_000])
+            return _mcp_result(req_id, {
+                "content": [{"type": "text", "text": str(findings)}],
+                "isError": False,
+            })
+
+        return _mcp_error(req_id, -32602, f"Unknown tool: {tool_name}")
+
+    return _mcp_error(req_id, -32601, f"Method not found: {method}")
 
 
 # ─── Maintenance ──────────────────────────────────────────────────────────────

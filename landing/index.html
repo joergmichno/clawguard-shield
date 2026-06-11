@@ -6,9 +6,16 @@
     <title>ClawGuard Shield — EU AI Act Compliance for AI Agents | Automated Security Scanning</title>
     <meta name="description" content="EU AI Act compliant in minutes, not months. Automated security scanning for AI agents with PDF compliance reports mapped to Art. 9, 15, 17, 61. Free scanner, Pro from €99/mo.">
     <meta property="og:title" content="ClawGuard Shield — EU AI Act Compliance for AI Agents">
-    <meta property="og:description" content="EU AI Act Deadline: August 2, 2026. Automated compliance scanning for AI agents. PDF reports, 200 threat patterns, 6ms response. Start free.">
+    <meta property="og:description" content="EU AI Act Deadline: August 2, 2026. Runtime security scanning for AI agents &amp; MCP configs. PDF reports, 228 threat patterns, 6ms response. Start free.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://prompttools.co/shield">
+    <meta property="og:image" content="https://prompttools.co/shield/social-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ClawGuard Shield — MCP Security Scanner">
+    <meta name="twitter:description" content="7.2% of MCP servers have vulnerabilities. 228 threat patterns, 15 languages, EU AI Act compliance. Runtime security for AI agents.">
+    <meta name="twitter:image" content="https://prompttools.co/shield/social-preview.png">
     <link rel="canonical" href="https://prompttools.co/shield">
     <script type="application/ld+json">
     {
@@ -22,7 +29,7 @@
             {"@type": "Offer", "price": "99", "priceCurrency": "EUR", "name": "Pro Compliance"},
             {"@type": "Offer", "price": "249", "priceCurrency": "EUR", "name": "Enterprise Compliance"}
         ],
-        "description": "EU AI Act compliance-as-a-service for AI agents. Automated security scanning, PDF compliance reports, mapped to Art. 9, 15, 17, 61."
+        "description": "EU AI Act compliance-as-a-service for AI agents. Runtime security scanning for AI agents and MCP configs, PDF compliance reports, mapped to Art. 9, 15, 17, 61."
     }
     </script>
     <style>
@@ -97,7 +104,7 @@
 
         /* Stats */
         .stats { padding: 40px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-        .stats-inner { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+        .stats-inner { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; }
         .stat { text-align: center; }
         .stat .num { font-size: 32px; font-weight: 800; color: var(--accent); }
         .stat .label { font-size: 14px; color: var(--muted); margin-top: 4px; }
@@ -270,7 +277,7 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .stats-inner { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+            .stats-inner { grid-template-columns: repeat(3, 1fr); gap: 16px 12px; }
             .feature-grid, .pricing-grid { grid-template-columns: 1fr; }
             .report-layout { grid-template-columns: 1fr; }
             .register-form { flex-direction: column; }
@@ -321,7 +328,7 @@
     <div class="container">
         <div class="badge">&#x23F0; EU AI Act Enforcement: August 2, 2026 — Are You Ready?</div>
         <h1><span class="highlight">EU AI Act Compliance</span><br>for AI Agents</h1>
-        <p>Your AI agents must comply with the EU AI Act by August 2026. ClawGuard Shield automates security scanning and generates audit-ready PDF compliance reports — in minutes, not months.</p>
+        <p>7.2% of MCP servers contain at least one security vulnerability. ClawGuard Shield provides runtime security scanning for AI agents and MCP configs — not static code analysis — and generates audit-ready EU AI Act compliance reports in minutes.</p>
         <div class="hero-actions">
             <a href="#report-demo" class="btn-green">&#x1F4CB; Try Free Compliance Scan</a>
             <a href="#register" class="btn-primary">Start Free</a>
@@ -332,12 +339,14 @@
 
 <section class="stats">
     <div class="container stats-inner">
+        <div class="stat"><div class="num" style="color:var(--red)">7.2%</div><div class="label">MCP Servers Vulnerable*</div></div>
         <div class="stat"><div class="num">4</div><div class="label">EU AI Act Articles Covered</div></div>
-        <div class="stat"><div class="num">200</div><div class="label">Threat Patterns</div></div>
+        <div class="stat"><div class="num">204</div><div class="label">Threat Patterns</div></div>
         <div class="stat"><div class="num">6ms</div><div class="label">Scan Response</div></div>
         <div class="stat"><div class="num">PDF</div><div class="label">Audit-Ready Reports</div></div>
         <div class="stat"><div class="num">0</div><div class="label">Dependencies</div></div>
     </div>
+    <div class="container" style="text-align:center;margin-top:12px;font-size:11px;color:var(--muted)">*Source: habr.com study of 1,899 MCP servers (2025)</div>
 </section>
 
 <!-- COMPLIANCE REPORT DEMO -->
@@ -347,7 +356,7 @@
         <div class="report-layout">
             <div class="report-left">
                 <h2>Get Your <span class="highlight">Compliance Report</span> in Seconds</h2>
-                <p>Paste any text your AI agent processes. We scan it against 200 threat patterns and generate a professional PDF compliance report mapped to EU AI Act requirements.</p>
+                <p>Paste any text your AI agent processes. We scan it at runtime against 228 threat patterns and generate a professional PDF compliance report mapped to EU AI Act requirements.</p>
                 <ul class="report-benefits">
                     <li><span class="check">&#x2713;</span> 5-section PDF: Cover, Executive Summary, Findings, EU AI Act, Methodology</li>
                     <li><span class="check">&#x2713;</span> Risk scoring: CRITICAL / HIGH / MEDIUM / LOW</li>
@@ -487,7 +496,7 @@ curl -X POST https://prompttools.co/api/v1/report \
                 <ul>
                     <li>3 scans / month</li>
                     <li>5,000 chars / request</li>
-                    <li>All 200 threat patterns</li>
+                    <li>All 228 threat patterns</li>
                     <li class="new">PDF compliance report</li>
                     <li>JSON API response</li>
                 </ul>
@@ -500,7 +509,7 @@ curl -X POST https://prompttools.co/api/v1/report \
                 <ul>
                     <li>1,000 scans / day</li>
                     <li>50,000 chars / request</li>
-                    <li>All 200 threat patterns</li>
+                    <li>All 228 threat patterns</li>
                     <li class="new">Branded PDF reports</li>
                     <li>Priority support</li>
                     <li>EU AI Act article mapping</li>
@@ -514,7 +523,7 @@ curl -X POST https://prompttools.co/api/v1/report \
                 <ul>
                     <li>Unlimited scans</li>
                     <li>200,000 chars / request</li>
-                    <li>All 200 threat patterns</li>
+                    <li>All 228 threat patterns</li>
                     <li class="new">White-label PDF reports</li>
                     <li>Custom patterns</li>
                     <li>Dedicated onboarding</li>

@@ -3,7 +3,7 @@
 **Security Scanning REST API for AI Agents**
 
 [![CI](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml/badge.svg)](https://github.com/joergmichno/clawguard-shield/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-265%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-259%20passed-brightgreen)](tests/)
 [![Patterns](https://img.shields.io/badge/patterns-225-blue)](clawguard.py)
 [![Languages](https://img.shields.io/badge/languages-15-blue)](clawguard.py)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
@@ -288,7 +288,7 @@ The Docker setup includes:
 ```bash
 pip install pytest
 python -m pytest tests/ -v
-# 70 passed
+# 259 passed
 ```
 
 70 tests covering:
