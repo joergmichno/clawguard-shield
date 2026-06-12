@@ -301,7 +301,7 @@ python -m pytest tests/ -v
 
 ## Related Projects
 
-- [ClawGuard](https://github.com/joergmichno/clawguard) — The open-source scanner this API wraps (225 patterns, zero dependencies)
+- [ClawGuard](https://github.com/joergmichno/clawguard) — The open-source scanner this API wraps (zero dependencies)
 - [ClawGuard Shield Python SDK](https://github.com/joergmichno/clawguard-shield-python) — Python client library ([PyPI](https://pypi.org/project/clawguard-shield/))
 - [ClawGuard Scan Action](https://github.com/joergmichno/clawguard-scan-action) — GitHub Action for CI/CD security scanning
 - [Prompt Lab](https://github.com/joergmichno/prompt-lab) — Interactive prompt injection playground ([Live Demo](https://prompttools.co))
