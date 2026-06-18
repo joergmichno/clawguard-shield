@@ -38,7 +38,7 @@ clawguard = "clawguard_shield.cli:main"
 api = ["flask>=3.1.0", "gunicorn>=23.0.0"]
 payments = ["stripe>=12.0.0"]
 reports = ["fpdf2>=2.8.0"]
-dev = ["pytest>=7.0", "ruff>=0.4.0"]
+dev = ["pytest>=9.0.3", "ruff>=0.4.0"]
 
 [tool.setuptools.packages.find]
 include = ["clawguard_shield*"]
